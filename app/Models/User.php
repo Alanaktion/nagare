@@ -57,4 +57,11 @@ class User extends Authenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+
+    public function getBoards()
+    {
+        return Board::where('user_id', $this->id)
+            ->orWhere('team_id', $this->currentTeam->id)
+            ->get();
+    }
 }

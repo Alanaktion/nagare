@@ -1,8 +1,8 @@
 <template>
     <div class="min-h-screen bg-gray-100">
-        <nav class="bg-white border-b border-gray-100">
+        <nav class="bg-white border-b border-gray-100 sticky shadow top-0">
             <!-- Primary Navigation Menu -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="px-4 sm:px-6">
                 <div class="flex justify-between h-16">
                     <div class="flex">
                         <!-- Logo -->
@@ -14,8 +14,12 @@
 
                         <!-- Navigation Links -->
                         <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                            <jet-nav-link href="/dashboard" :active="$page.currentRouteName == 'dashboard'">
-                                Dashboard
+                            <jet-nav-link
+                                v-for="board in $page.auth.boards"
+                                :key="board.id"
+                                :href="`/boards/${board.slug}`"
+                                :active="$inertia.page.url == `/boards/${board.slug}`">
+                                {{ board.name }}
                             </jet-nav-link>
                         </div>
                     </div>
@@ -79,7 +83,7 @@
                                         </div>
 
                                         <template v-for="team in $page.user.all_teams">
-                                            <form @submit.prevent="switchToTeam(team)">
+                                            <form @submit.prevent="switchToTeam(team)" :key="team.id">
                                                 <jet-dropdown-link as="button">
                                                     <div class="flex items-center">
                                                         <svg v-if="team.id == $page.user.current_team_id" class="mr-2 h-5 w-5 text-green-400" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -118,8 +122,12 @@
             <!-- Responsive Navigation Menu -->
             <div :class="{'block': showingNavigationDropdown, 'hidden': ! showingNavigationDropdown}" class="sm:hidden">
                 <div class="pt-2 pb-3 space-y-1">
-                    <jet-responsive-nav-link href="/dashboard" :active="$page.currentRouteName == 'dashboard'">
-                        Dashboard
+                    <jet-responsive-nav-link
+                        v-for="board in $page.auth.boards"
+                        :key="board.id"
+                        :href="`/boards/${board.slug}`"
+                        :active="$inertia.page.url == `/boards/${board.slug}`">
+                        {{ board.name }}
                     </jet-responsive-nav-link>
                 </div>
 
@@ -193,9 +201,10 @@
         </nav>
 
         <!-- Page Heading -->
-        <header class="bg-white shadow">
-            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <header v-show="hasHeader">
+            <div class="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <slot name="header"></slot>
+                <div class="pb-6 border-b"></div>
             </div>
         </header>
 
@@ -253,7 +262,10 @@
         computed: {
             path() {
                 return window.location.pathname
-            }
-        }
+            },
+            hasHeader() {
+                return !!this.$slots.header?.[0];
+            },
+        },
     }
 </script>

@@ -15,7 +15,7 @@ class CreateStatusesTable extends Migration
     {
         Schema::create('statuses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('board_id');
+            $table->foreignId('board_id')->index();
             $table->string('name');
             $table->float('sort');
             $table->boolean('is_closed');

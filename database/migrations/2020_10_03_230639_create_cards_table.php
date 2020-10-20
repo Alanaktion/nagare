@@ -15,12 +15,12 @@ class CreateCardsTable extends Migration
     {
         Schema::create('cards', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('board_id');
+            $table->foreignId('board_id')->index();
             $table->foreignId('author_id')->constrained('users');
             $table->foreignId('assigned_id')->constrained('users')->nullable();
-            $table->foreignId('status_id')->nullable();
+            $table->foreignId('status_id')->index()->nullable();
             $table->string('name');
-            $table->text('description');
+            $table->text('description')->nullable();
             $table->float('sort');
             $table->timestamps();
             $table->softDeletes();

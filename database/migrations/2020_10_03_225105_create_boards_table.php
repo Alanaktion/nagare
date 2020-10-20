@@ -18,8 +18,8 @@ class CreateBoardsTable extends Migration
             $table->string('type')->default('kanban');
             $table->string('name');
             $table->string('slug')->unique();
-            $table->foreignId('user_id')->nullable();
-            $table->foreignId('team_id')->nullable();
+            $table->foreignId('user_id')->index()->nullable();
+            $table->foreignId('team_id')->index()->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

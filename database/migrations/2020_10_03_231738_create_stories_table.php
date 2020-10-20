@@ -15,18 +15,18 @@ class CreateStoriesTable extends Migration
     {
         Schema::create('stories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('board_id');
+            $table->foreignId('board_id')->index();
             $table->foreignId('author_id')->constrained('users');
             $table->foreignId('assigned_id')->constrained('users')->nullable();
             $table->string('sprint')->nullable();
             $table->string('name');
-            $table->text('description');
+            $table->text('description')->nullable();
             $table->float('sort');
             $table->timestamps();
             $table->softDeletes();
         });
         Schema::table('cards', function (Blueprint $table) {
-            $table->foreignId('story_id')->nullable()->after('board_id');
+            $table->foreignId('story_id')->index()->nullable()->after('board_id');
         });
     }
 
@@ -37,9 +37,10 @@ class CreateStoriesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('stories');
         Schema::table('cards', function (Blueprint $table) {
+            $table->dropForeign(['story_id']);
             $table->dropColumn('story_id');
         });
+        Schema::dropIfExists('stories');
     }
 }

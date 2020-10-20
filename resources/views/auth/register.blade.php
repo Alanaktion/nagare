@@ -8,6 +8,7 @@
 
         <form method="POST" action="{{ route('register') }}">
             @csrf
+            <input type="hidden" name="remember" value="on">
 
             <div>
                 <x-jet-label value="{{ __('Name') }}" />

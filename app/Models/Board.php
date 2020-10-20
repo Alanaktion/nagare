@@ -13,4 +13,29 @@ class Board extends Model
 
     public const TYPE_KANBAN = 'kanban';
     public const TYPE_SCRUM = 'scrum';
+
+    public function statuses()
+    {
+        return $this->hasMany(Status::class);
+    }
+
+    public function cards()
+    {
+        return $this->hasMany(Card::class);
+    }
+
+    public function stories()
+    {
+        return $this->hasMany(Story::class);
+    }
+
+    public function team()
+    {
+        return $this->belongsTo(Team::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

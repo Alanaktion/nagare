@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BoardController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,6 +18,8 @@ Route::get('/', function () {
     return redirect('/dashboard');
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->get('/dashboard', function () {
-    return Inertia\Inertia::render('Dashboard');
-})->name('dashboard');
+Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/dashboard', [BoardController::class, 'index'])->name('dashboard');
+    Route::get('/boards/{board:slug}', [BoardController::class, 'show'])->middleware('can:view,board');
+    Route::get('/boards/{board:slug}/{sprint}', [BoardController::class, 'showSprint'])->middleware('can:view,board');
+});
