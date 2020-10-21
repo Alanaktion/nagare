@@ -6,11 +6,12 @@
         </div>
         <div
             v-for="status in statuses"
-            :key="status.id"
+            :key="`${status.id}-header`"
             class="hidden sm:block sticky top-0 bg-white shadow-sm px-3 py-2">
             {{ status.name }}
         </div>
 
+        <!-- Loop over stories, then over statuses, then cards by story/status -->
         <template v-if="!loading">
             <template v-for="story in stories">
                 <div :key="story.id" class="bg-gray-200 px-3 py-2 sm:p-2 sm:sticky sm:left-0">

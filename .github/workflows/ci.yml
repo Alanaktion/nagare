@@ -25,5 +25,5 @@ jobs:
       run: |
         composer install --no-scripts
 
-    - name: Run Testsuite
+    - name: Run Tests
       run: vendor/bin/phpunit tests/

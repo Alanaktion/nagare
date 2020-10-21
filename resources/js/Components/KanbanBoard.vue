@@ -3,7 +3,7 @@
         <!-- Headers -->
         <div
             v-for="status in statuses"
-            :key="status.id"
+            :key="`${status.id}-header`"
             class="hidden sm:block sticky top-0 bg-white shadow-sm px-3 py-2">
             {{ status.name }}
         </div>
