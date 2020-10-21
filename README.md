@@ -1,4 +1,4 @@
-[![Actions Status](https://github.com/Alanaktion/nagare/workflows/ci/badge.svg)](https://github.com/Alanaktion/nagare/actions)
+[![Actions Status](https://github.com/Alanaktion/nagare/workflows/CI/badge.svg)](https://github.com/Alanaktion/nagare/actions)
 
 # 流れ
 
