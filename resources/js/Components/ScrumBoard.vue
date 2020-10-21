@@ -39,7 +39,12 @@
 </template>
 
 <script>
+import BoardCard from './BoardCard.vue'
+
 export default {
+    components: {
+        BoardCard,
+    },
     props: ['boardId', 'sprint', 'statuses'],
     data: () => ({
         loading: false,
