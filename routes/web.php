@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BoardController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,6 +20,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+    Route::get('/user/settings', [UserController::class, 'settings']);
     Route::get('/dashboard', [BoardController::class, 'index'])->name('dashboard');
     Route::get('/boards/{board:slug}', [BoardController::class, 'show'])->middleware('can:view,board');
     Route::get('/boards/{board:slug}/{sprint}', [BoardController::class, 'showSprint'])->middleware('can:view,board');

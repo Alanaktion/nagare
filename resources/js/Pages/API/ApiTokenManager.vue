@@ -26,7 +26,7 @@
                         <div v-for="permission in availablePermissions">
                             <label class="flex items-center">
                                 <input type="checkbox" class="form-checkbox" :value="permission" v-model="createApiTokenForm.permissions">
-                                <span class="ml-2 text-sm text-gray-600">{{ permission }}</span>
+                                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ permission }}</span>
                             </label>
                         </div>
                     </div>
@@ -122,7 +122,7 @@
                     <div v-for="permission in availablePermissions">
                         <label class="flex items-center">
                             <input type="checkbox" class="form-checkbox" :value="permission" v-model="updateApiTokenForm.permissions">
-                            <span class="ml-2 text-sm text-gray-600">{{ permission }}</span>
+                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ permission }}</span>
                         </label>
                     </div>
                 </div>

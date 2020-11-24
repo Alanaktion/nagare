@@ -15,7 +15,7 @@
 
                 <template #form>
                     <div class="col-span-6">
-                        <div class="max-w-xl text-sm text-gray-600">
+                        <div class="max-w-xl text-sm text-gray-600 dark:text-gray-400">
                             Please provide the email address of the person you would like to add to this team. The email address must be associated with an existing account.
                         </div>
                     </div>
@@ -32,17 +32,17 @@
                         <jet-label for="roles" value="Role" />
                         <jet-input-error :message="addTeamMemberForm.error('role')" class="mt-2" />
 
-                        <div class="mt-1 border border-gray-200 rounded-lg cursor-pointer">
+                        <div class="mt-1 border border-gray-200 dark:border-trueGray-700 rounded-lg cursor-pointer">
                             <div class="px-4 py-3"
-                                            :class="{'border-t border-gray-200': i > 0}"
-                                            @click="addTeamMemberForm.role = role.key"
-                                            v-for="(role, i) in availableRoles"
-                                            :key="i"
-                                            >
+                                :class="{'border-t border-gray-200 dark:border-trueGray-700': i > 0}"
+                                @click="addTeamMemberForm.role = role.key"
+                                v-for="(role, i) in availableRoles"
+                                :key="i"
+                            >
                                 <div :class="{'opacity-50': addTeamMemberForm.role && addTeamMemberForm.role != role.key}">
                                     <!-- Role Name -->
                                     <div class="flex items-center">
-                                        <div class="text-sm text-gray-600" :class="{'font-semibold': addTeamMemberForm.role == role.key}">
+                                        <div class="text-sm text-gray-600 dark:text-gray-400" :class="{'font-semibold': addTeamMemberForm.role == role.key}">
                                             {{ role.name }}
                                         </div>
 
@@ -50,7 +50,7 @@
                                     </div>
 
                                     <!-- Role Description -->
-                                    <div class="mt-2 text-xs text-gray-600">
+                                    <div class="mt-2 text-xs text-gray-600 dark:text-gray-400">
                                         {{ role.description }}
                                     </div>
                                 </div>
@@ -107,15 +107,15 @@
 
                                 <!-- Leave Team -->
                                 <button class="cursor-pointer ml-6 text-sm text-red-500 focus:outline-none"
-                                                    @click="confirmLeavingTeam"
-                                                    v-if="$page.user.id === user.id">
+                                        @click="confirmLeavingTeam"
+                                        v-if="$page.user.id === user.id">
                                     Leave
                                 </button>
 
                                 <!-- Remove Team Member -->
                                 <button class="cursor-pointer ml-6 text-sm text-red-500 focus:outline-none"
-                                                    @click="confirmTeamMemberRemoval(user)"
-                                                    v-if="userPermissions.canRemoveTeamMembers">
+                                        @click="confirmTeamMemberRemoval(user)"
+                                        v-if="userPermissions.canRemoveTeamMembers">
                                     Remove
                                 </button>
                             </div>
@@ -133,17 +133,17 @@
 
             <template #content>
                 <div v-if="managingRoleFor">
-                    <div class="mt-1 border border-gray-200 rounded-lg cursor-pointer">
+                    <div class="mt-1 border border-gray-200 dark:border-trueGray-700 rounded-lg cursor-pointer">
                         <div class="px-4 py-3"
-                                        :class="{'border-t border-gray-200': i > 0}"
-                                        @click="updateRoleForm.role = role.key"
-                                        v-for="(role, i) in availableRoles" 
-                                        :key="i"
-                                        >
+                            :class="{'border-t border-gray-200 dark:border-trueGray-700': i > 0}"
+                            @click="updateRoleForm.role = role.key"
+                            v-for="(role, i) in availableRoles"
+                            :key="i"
+                        >
                             <div :class="{'opacity-50': updateRoleForm.role && updateRoleForm.role != role.key}">
                                 <!-- Role Name -->
                                 <div class="flex items-center">
-                                    <div class="text-sm text-gray-600" :class="{'font-semibold': updateRoleForm.role == role.key}">
+                                    <div class="text-sm text-gray-600 dark:text-gray-400" :class="{'font-semibold': updateRoleForm.role == role.key}">
                                         {{ role.name }}
                                     </div>
 
@@ -151,7 +151,7 @@
                                 </div>
 
                                 <!-- Role Description -->
-                                <div class="mt-2 text-xs text-gray-600">
+                                <div class="mt-2 text-xs text-gray-600 dark:text-gray-400">
                                     {{ role.description }}
                                 </div>
                             </div>

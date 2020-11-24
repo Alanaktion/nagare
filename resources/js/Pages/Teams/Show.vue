@@ -1,7 +1,7 @@
 <template>
     <app-layout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-300 leading-tight">
                 Team Settings
             </h2>
         </template>
@@ -11,9 +11,9 @@
                 <update-team-name-form :team="team" :permissions="permissions" />
 
                 <team-member-manager class="mt-10 sm:mt-0"
-                            :team="team"
-                            :available-roles="availableRoles"
-                            :user-permissions="permissions" />
+                    :team="team"
+                    :available-roles="availableRoles"
+                    :user-permissions="permissions" />
 
                 <template v-if="permissions.canDeleteTeam && ! team.personal_team">
                     <jet-section-border />

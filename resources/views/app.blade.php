@@ -11,9 +11,28 @@
         <link rel="stylesheet" href="{{ mix('css/app.css') }}">
 
         <!-- Scripts -->
+        <script>
+            const media = window.matchMedia('(prefers-color-scheme: dark)')
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && media.matches)) {
+                document.querySelector('html').classList.add('dark')
+            } else {
+                document.querySelector('html').classList.remove('dark')
+            }
+            media.addListener(m => {
+                if ('theme' in localStorage) {
+                    return;
+                }
+                const cl = document.querySelector('html').classList;
+                if (m.matches) {
+                    cl.add('dark')
+                } else {
+                    cl.remove('dark')
+                }
+            })
+        </script>
         <script src="{{ mix('js/app.js') }}" defer></script>
     </head>
-    <body class="font-sans antialiased">
+    <body class="font-sans antialiased bg-white dark:bg-trueGray-900 dark:text-gray-100">
         @inertia
     </body>
 </html>

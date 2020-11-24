@@ -2,13 +2,13 @@
     <app-layout>
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-300 leading-tight">
-                Create Team
+                Settings
             </h2>
         </template>
 
         <div>
             <div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
-                <create-team-form />
+                <theme-toggle />
             </div>
         </div>
     </app-layout>
@@ -16,16 +16,12 @@
 
 <script>
     import AppLayout from './../../Layouts/AppLayout'
-    import CreateTeamForm from './CreateTeamForm'
-    import JetSectionBorder from './../../Jetstream/SectionBorder'
+    import ThemeToggle from './ThemeToggle'
 
     export default {
-        props: ['team'],
-
         components: {
             AppLayout,
-            CreateTeamForm,
-            JetSectionBorder,
+            ThemeToggle,
         },
     }
 </script>

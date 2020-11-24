@@ -1,6 +1,6 @@
 <template>
-    <div class="min-h-screen bg-gray-100">
-        <nav class="bg-white border-b border-gray-100 sticky shadow top-0">
+    <div class="min-h-screen bg-gray-100 dark:bg-trueGray-900">
+        <nav class="bg-white dark:bg-trueGray-800 border-b border-gray-100 dark:border-trueGray-700 dark:border-trueGray-800 sticky shadow top-0">
             <!-- Primary Navigation Menu -->
             <div class="px-4 sm:px-6">
                 <div class="flex justify-between h-16">
@@ -54,11 +54,15 @@
                                         Profile
                                     </jet-dropdown-link>
 
+                                    <jet-dropdown-link href="/user/settings">
+                                        Settings
+                                    </jet-dropdown-link>
+
                                     <jet-dropdown-link href="/user/api-tokens" v-if="$page.jetstream.hasApiFeatures">
                                         API Tokens
                                     </jet-dropdown-link>
 
-                                    <div class="border-t border-gray-100"></div>
+                                    <div class="border-t border-gray-100 dark:border-trueGray-700"></div>
 
                                     <!-- Team Management -->
                                     <template v-if="$page.jetstream.hasTeamFeatures">
@@ -75,7 +79,7 @@
                                             Create New Team
                                         </jet-dropdown-link>
 
-                                        <div class="border-t border-gray-100"></div>
+                                        <div class="border-t border-gray-100 dark:border-trueGray-700"></div>
 
                                         <!-- Team Switcher -->
                                         <div class="block px-4 py-2 text-xs text-gray-400">
@@ -93,7 +97,7 @@
                                             </form>
                                         </template>
 
-                                        <div class="border-t border-gray-100"></div>
+                                        <div class="border-t border-gray-100 dark:border-trueGray-700"></div>
                                     </template>
 
                                     <!-- Authentication -->
@@ -132,7 +136,7 @@
                 </div>
 
                 <!-- Responsive Settings Options -->
-                <div class="pt-4 pb-1 border-t border-gray-200">
+                <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-700">
                     <div class="flex items-center px-4">
                         <div class="flex-shrink-0">
                             <img class="h-10 w-10 rounded-full" :src="$page.user.profile_photo_url" :alt="$page.user.name" />
@@ -162,7 +166,7 @@
 
                         <!-- Team Management -->
                         <template v-if="$page.jetstream.hasTeamFeatures">
-                            <div class="border-t border-gray-200"></div>
+                            <div class="border-t border-gray-200 dark:border-gray-700"></div>
 
                             <div class="block px-4 py-2 text-xs text-gray-400">
                                 Manage Team
@@ -177,7 +181,7 @@
                                 Create New Team
                             </jet-responsive-nav-link>
 
-                            <div class="border-t border-gray-200"></div>
+                            <div class="border-t border-gray-200 dark:border-gray-700"></div>
 
                             <!-- Team Switcher -->
                             <div class="block px-4 py-2 text-xs text-gray-400">
@@ -204,7 +208,7 @@
         <header v-show="hasHeader">
             <div class="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8">
                 <slot name="header"></slot>
-                <div class="pb-6 border-b"></div>
+                <div class="pb-6 border-b dark:border-trueGray-700"></div>
             </div>
         </header>
 

@@ -1,6 +1,9 @@
 const defaultTheme = require('tailwindcss/defaultTheme');
+const colors = require('tailwindcss/colors');
 
 module.exports = {
+    darkMode: 'class',
+
     purge: [
         './vendor/laravel/jetstream/**/*.blade.php',
         './storage/framework/views/*.php',
@@ -9,6 +12,21 @@ module.exports = {
     ],
 
     theme: {
+        colors: {
+            transparent: 'transparent',
+            current: 'currentColor',
+
+            black: colors.black,
+            white: colors.white,
+            gray: colors.coolGray,
+            trueGray: colors.trueGray,
+            red: colors.red,
+            yellow: colors.amber,
+            green: colors.emerald,
+            blue: colors.blue,
+            indigo: colors.indigo,
+            purple: colors.violet,
+        },
         extend: {
             borderWidth: {
                 '3': '3px',
@@ -16,16 +34,14 @@ module.exports = {
         },
     },
 
+    plugins: [
+        require('@tailwindcss/forms'),
+    ],
+
     variants: {
-        opacity: ['responsive', 'hover', 'focus', 'disabled'],
+        extend: {
+            opacity: ['disabled'],
+            backgroundOpacity: ['dark'],
+        },
     },
-
-    plugins: [require('@tailwindcss/ui')],
-
-    future: {
-        removeDeprecatedGapUtilities: true,
-        purgeLayersByDefault: true,
-        defaultLineHeights: true,
-        standardFontWeights: true,
-    }
 };
