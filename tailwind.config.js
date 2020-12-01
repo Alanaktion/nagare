@@ -19,7 +19,10 @@ module.exports = {
             black: colors.black,
             white: colors.white,
             gray: colors.coolGray,
-            trueGray: colors.trueGray,
+            trueGray: {
+                ... colors.trueGray,
+                850: '#1d1d1d',
+            },
             red: colors.red,
             yellow: colors.amber,
             green: colors.emerald,

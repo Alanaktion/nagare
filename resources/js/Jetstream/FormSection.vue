@@ -14,7 +14,7 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-end px-4 py-3 bg-gray-50 dark:bg-trueGray-800 dark:bg-opacity-40 text-right sm:px-6" v-if="hasActions">
+                    <div class="flex items-center justify-end px-4 py-3 bg-gray-50 dark:bg-trueGray-850 text-right sm:px-6" v-if="hasActions">
                         <slot name="actions"></slot>
                     </div>
                 </div>
