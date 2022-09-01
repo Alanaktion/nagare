@@ -1,7 +1,7 @@
 <template>
     <app-layout>
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-300 leading-tight">
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-neutral-300 leading-tight">
                 Settings
             </h2>
         </template>
@@ -14,14 +14,7 @@
     </app-layout>
 </template>
 
-<script>
-    import AppLayout from './../../Layouts/AppLayout'
-    import ThemeToggle from './ThemeToggle'
-
-    export default {
-        components: {
-            AppLayout,
-            ThemeToggle,
-        },
-    }
+<script setup>
+import AppLayout from '@/Layouts/AppLayout.vue';
+import ThemeToggle from './ThemeToggle.vue';
 </script>

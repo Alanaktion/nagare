@@ -1,5 +1,5 @@
 <template>
-    <jet-action-section>
+    <JetActionSection>
         <template #title>
             Theme
         </template>
@@ -12,29 +12,29 @@
             <div class="space-y-4">
                 <div class="flex items-center">
                     <input id="auto" value="auto" v-model="theme" type="radio" class="focus:ring-indigo-500 dark:focus:ring-indigo-400 h-4 w-4 text-indigo-600 border-gray-300">
-                    <label for="auto" class="ml-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label for="auto" class="ml-3 block text-sm font-medium text-gray-700 dark:text-neutral-300">
                         Automatic
                     </label>
                 </div>
                 <div class="flex items-center">
                     <input id="light" value="light" v-model="theme" type="radio" class="focus:ring-indigo-500 dark:focus:ring-indigo-400 h-4 w-4 text-indigo-600 border-gray-300">
-                    <label for="light" class="ml-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label for="light" class="ml-3 block text-sm font-medium text-gray-700 dark:text-neutral-300">
                         Light
                     </label>
                 </div>
                 <div class="flex items-center">
                     <input id="dark" value="dark" v-model="theme" type="radio" class="focus:ring-indigo-500 dark:focus:ring-indigo-400 h-4 w-4 text-indigo-600 border-gray-300">
-                    <label for="dark" class="ml-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label for="dark" class="ml-3 block text-sm font-medium text-gray-700 dark:text-neutral-300">
                         Dark
                     </label>
                 </div>
             </div>
         </template>
-    </jet-action-section>
+    </JetActionSection>
 </template>
 
 <script>
-    import JetActionSection from './../../Jetstream/ActionSection'
+    import JetActionSection from '@/Jetstream/ActionSection.vue';
 
     export default {
         components: {

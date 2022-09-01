@@ -19,7 +19,11 @@ Route::get('/', function () {
     return redirect('/dashboard');
 });
 
-Route::middleware(['auth:sanctum', 'verified'])->group(function () {
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->group(function () {
     Route::get('/user/settings', [UserController::class, 'settings']);
     Route::get('/dashboard', [BoardController::class, 'index'])->name('dashboard');
     Route::get('/boards/{board:slug}', [BoardController::class, 'show'])->middleware('can:view,board');

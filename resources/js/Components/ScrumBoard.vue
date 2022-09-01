@@ -1,20 +1,20 @@
 <template>
-    <div class="grid grid-scrum sm:gap-px bg-gray-300 sm:border-b border-gray-300 w-full overflow-auto">
+    <div class="grid grid-scrum sm:gap-px bg-gray-300 dark:bg-neutral-700 sm:border-b border-gray-300 dark:border-neutral-700 w-full overflow-auto">
         <!-- Headers -->
-        <div class="hidden sm:block sticky top-0 left-0 z-10 bg-white shadow-sm px-3 py-2 font-semibold">
+        <div class="hidden sm:block sticky top-0 left-0 z-10 bg-white dark:bg-neutral-800 shadow-sm px-3 py-2 font-semibold">
             Story
         </div>
         <div
             v-for="status in statuses"
             :key="`${status.id}-header`"
-            class="hidden sm:block sticky top-0 bg-white shadow-sm px-3 py-2">
+            class="hidden sm:block sticky top-0 bg-white dark:bg-neutral-800 shadow-sm px-3 py-2">
             {{ status.name }}
         </div>
 
         <!-- Loop over stories, then over statuses, then cards by story/status -->
         <template v-if="!loading">
-            <template v-for="story in stories">
-                <div :key="story.id" class="bg-gray-200 px-3 py-2 sm:p-2 sm:sticky sm:left-0">
+            <template v-for="story in stories" :key="story.id">
+                <div class="bg-gray-200 dark:bg-neutral-900 px-3 py-2 sm:p-2 sm:sticky sm:left-0">
                     <div class="bg-white shadow rounded-sm px-3 py-2" >
                         <div class="leading-tight mb-1">
                             {{ story.name }}
@@ -27,8 +27,8 @@
                 <div
                     v-for="status in statuses"
                     :key="`${story.id}-${status.id}`"
-                    class="px-3 sm:py-2 bg-gray-100 flex flex-col gap-3">
-                    <board-card
+                    class="px-3 sm:py-2 bg-gray-100 dark:bg-neutral-900 flex flex-col gap-3">
+                    <BoardCard
                         v-for="card in getCardsByStoryAndStatusId(story.id, status.id)"
                         :key="card.id"
                         :card="card"
@@ -39,34 +39,27 @@
     </div>
 </template>
 
-<script>
-import BoardCard from './BoardCard.vue'
+<script setup>
+import { ref } from 'vue';
+import BoardCard from './BoardCard.vue';
 
-export default {
-    components: {
-        BoardCard,
-    },
-    props: ['boardId', 'sprint', 'statuses'],
-    data: () => ({
-        loading: false,
-        stories: [],
-        cards: [],
-    }),
-    methods: {
-        async loadData() {
-            this.loading = true;
-            const storyResponse = await axios.get(`/api/boards/${this.$props.boardId}/stories/${this.$props.sprint}`);
-            this.stories = storyResponse.data;
-            const cardResponse = await axios.get(`/api/boards/${this.$props.boardId}/cards/${this.$props.sprint}`);
-            this.cards = cardResponse.data;
-            this.loading = false;
-        },
-        getCardsByStoryAndStatusId(storyId, statusId) {
-            return _.filter(this.cards, c => c.story_id == storyId && c.status_id == statusId);
-        },
-    },
-    mounted() {
-        this.loadData();
-    },
-}
+const props = defineProps(['boardId', 'sprint', 'statuses']);
+
+const loading = ref(false);
+const stories = ref([]);
+const cards = ref([]);
+
+const loadData = async () => {
+    loading.value = true;
+    const storyResponse = await axios.get(`/api/boards/${props.boardId}/stories/${props.sprint}`);
+    stories.value = storyResponse.data;
+    const cardResponse = await axios.get(`/api/boards/${props.boardId}/cards/${props.sprint}`);
+    cards.value = cardResponse.data;
+    loading.value = false;
+};
+const getCardsByStoryAndStatusId = (storyId, statusId) => {
+    return _.filter(cards.value, c => c.story_id == storyId && c.status_id == statusId);
+};
+
+loadData();
 </script>

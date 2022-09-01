@@ -29,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Inertia::share('auth.boards', function () {
             if ($user = Auth::user()) {
+                /** @var \App\Models\User $user */
                 return $user->getBoards();
             }
         });
@@ -40,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
                 'max_nesting_level' => 10,
             ]);
 
-            return $converter->convertToHtml($content);
+            return $converter->convert($content);
         });
     }
 }

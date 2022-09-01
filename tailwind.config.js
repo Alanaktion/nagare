@@ -1,10 +1,11 @@
 const defaultTheme = require('tailwindcss/defaultTheme');
 const colors = require('tailwindcss/colors');
 
+/** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: 'class',
 
-    purge: [
+    content: [
         './vendor/laravel/jetstream/**/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
@@ -12,25 +13,17 @@ module.exports = {
     ],
 
     theme: {
-        colors: {
-            transparent: 'transparent',
-            current: 'currentColor',
-
-            black: colors.black,
-            white: colors.white,
-            gray: colors.coolGray,
-            trueGray: {
-                ... colors.trueGray,
-                850: '#1d1d1d',
-            },
-            red: colors.red,
-            yellow: colors.amber,
-            green: colors.emerald,
-            blue: colors.blue,
-            indigo: colors.indigo,
-            purple: colors.violet,
-        },
         extend: {
+            colors: {
+                gray: colors.slate,
+                neutral: {
+                    ... colors.neutral,
+                    850: '#1d1d1d',
+                },
+                green: colors.emerald,
+                yellow: colors.amber,
+                purple: colors.violet,
+            },
             borderWidth: {
                 '3': '3px',
             },
@@ -39,12 +32,6 @@ module.exports = {
 
     plugins: [
         require('@tailwindcss/forms'),
+        require('@tailwindcss/typography'),
     ],
-
-    variants: {
-        extend: {
-            opacity: ['disabled'],
-            backgroundOpacity: ['dark'],
-        },
-    },
 };

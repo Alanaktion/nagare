@@ -12,44 +12,37 @@
                 }
             }
         </component>
-        <kanban-board
-            v-if="$page.board.type === 'kanban'"
-            :board-id="$page.board.id"
-            :statuses="statuses" />
-        <scrum-board
-            v-else-if="$page.board.type === 'scrum'"
-            :board-id="$page.board.id"
+        <KanbanBoard
+            v-if="$page.props.board.type === 'kanban'"
+            :board-id="$page.props.board.id"
+            :statuses="statuses"
+        />
+        <ScrumBoard
+            v-else-if="$page.props.board.type === 'scrum'"
+            :board-id="$page.props.board.id"
             :sprint="$page.sprint"
-            :statuses="statuses" />
+            :statuses="statuses"
+        />
     </app-layout>
 </template>
 
-<script>
-    import AppLayout from './../Layouts/AppLayout'
-    import KanbanBoard from './../Components/KanbanBoard'
-    import ScrumBoard from './../Components/ScrumBoard'
+<script setup>
+import { computed, ref } from 'vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import KanbanBoard from '@/Components/KanbanBoard.vue';
+import ScrumBoard from '@/Components/ScrumBoard.vue';
 
-    export default {
-        components: {
-            AppLayout,
-            KanbanBoard,
-            ScrumBoard,
-        },
-        data: () => ({
-            loading: false,
-            statuses: [],
-        }),
-        computed: {
-            columnCount() {
-                return this.statuses.length;
-            },
-        },
-        mounted() {
-            this.loading = true;
-            axios.get(`/api/boards/${this.$page.board.id}/statuses`).then(({ data }) => {
-                this.statuses = data;
-                this.loading = false;
-            });
-        },
-    }
+const loading = ref(true);
+const statuses = ref([]);
+const columnCount = computed(() => statuses.value.length);
+
+// TODO: figure out if this is how stuff works.
+const props = defineProps({
+    board: Object,
+});
+
+axios.get(`/api/boards/${props.board.id}/statuses`).then(({ data }) => {
+    statuses.value = data;
+    loading.value = false;
+});
 </script>

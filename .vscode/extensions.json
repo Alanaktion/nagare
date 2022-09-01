@@ -1,8 +1,9 @@
 {
     "recommendations": [
         "bmewburn.vscode-intelephense-client",
-        "ikappas.phpcs",
         "bradlc.vscode-tailwindcss",
-        "octref.vetur"
+        "mikestead.dotenv",
+        "shevaua.phpcs",
+        "Vue.volar"
     ]
 }

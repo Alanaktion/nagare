@@ -4,7 +4,7 @@ jobs:
   phpunit:
     runs-on: ubuntu-latest
     container:
-      image: kirschbaumdevelopment/laravel-test-runner:7.4
+      image: kirschbaumdevelopment/laravel-test-runner:8.0
 
     services:
       mysql:
@@ -17,13 +17,30 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      env:
+        cache-name: cache-dependencies
       with:
-        fetch-depth: 1
+        path: |
+          ~/.npm
+          ~/.composer
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
 
     - name: Install composer dependencies
       run: |
-        composer install --no-scripts
+        composer install --no-ansi --no-scripts
+
+    - name: Install front-end dependencies
+      run: |
+        npm ci
+        npm run build
 
     - name: Run Tests
       run: vendor/bin/phpunit tests/
