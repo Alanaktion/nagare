@@ -39,7 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                 class="border-sidebar-border/70 dark:border-sidebar-border relative min-h-screen flex-1 space-y-4 rounded-xl border p-4 md:min-h-min"
             >
                 <div>Buttons!</div>
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                     <Button>Primary</Button>
                     <Button variant="secondary">Secondary</Button>
                     <Button variant="destructive">Destructive</Button>
@@ -48,7 +48,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <Button variant="link">Link</Button>
                 </div>
                 <div>Components!</div>
-                <div class="flex flex-wrap items-start gap-4">
+                <div class="flex flex-col sm:flex-row sm:flex-wrap items-start gap-4">
                     <Calendar weekday-format="short" class="border-border rounded-md border" />
 
                     <RadioGroup default-value="weekly">

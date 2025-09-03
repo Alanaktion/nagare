@@ -68,7 +68,7 @@ const deleteBoard = () => {
         <HeadingSmall title="Current Boards" description="View and edit the current project boards you have access to." />
 
         <div class="space-y-6">
-            <div v-for="board in boards" :key="board.id" class="flex flex-col items-center sm:flex-row">
+            <div v-for="board in boards" :key="board.id" class="flex items-center">
                 <Link :href="route('boards.show', [board.id])" class="me-2 text-indigo-600 dark:text-indigo-400">
                     {{ board.name }}
                 </Link>
