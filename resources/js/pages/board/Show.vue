@@ -128,7 +128,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" full-width>
         <Head :title="board.name" />
 
         <Teleport defer to="#nav-right">

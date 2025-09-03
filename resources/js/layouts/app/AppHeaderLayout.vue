@@ -6,17 +6,19 @@ import type { BreadcrumbItemType } from '@/types';
 
 interface Props {
     breadcrumbs?: BreadcrumbItemType[];
+    fullWidth: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
+    fullWidth: false,
 });
 </script>
 
 <template>
-    <AppShell class="flex-col">
-        <AppHeader :breadcrumbs="breadcrumbs" />
-        <AppContent>
+    <AppShell :class="['flex-col', fullWidth && 'full-width']">
+        <AppHeader :breadcrumbs="breadcrumbs"/>
+        <AppContent :full-width="fullWidth">
             <slot />
         </AppContent>
     </AppShell>

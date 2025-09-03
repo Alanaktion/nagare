@@ -92,7 +92,7 @@ const deleteBoard = () => {
             <Dialog v-model:open="currentlyManagingBoard" @close="currentlyManagingBoard = false">
                 <DialogContent class="sm:max-w-xl">
                     <DialogHeader class="space-y-3">
-                        <DialogTitle>Manage Board</DialogTitle>
+                        <DialogTitle>Edit Board</DialogTitle>
                     </DialogHeader>
                     <div class="grid grid-cols-6 gap-6" v-if="managingBoardFor">
                         <div class="col-span-6 md:col-span-4">

@@ -5,16 +5,18 @@ import type { BreadcrumbItemType } from '@/types';
 
 interface Props {
     breadcrumbs?: BreadcrumbItemType[];
+    fullWidth?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
+    fullWidth: false,
 });
 </script>
 
 <template>
     <TooltipProvider :delay-duration="300">
-        <AppLayout :breadcrumbs="breadcrumbs">
+        <AppLayout :breadcrumbs="breadcrumbs" :full-width="fullWidth">
             <slot />
         </AppLayout>
     </TooltipProvider>

@@ -58,7 +58,7 @@ const mainNavItems: NavItem[] = [
 <template>
     <div>
         <div class="border-sidebar-border/80 border-b">
-            <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
+            <div class="mx-auto flex h-16 items-center px-4 not-full-width:md:max-w-7xl">
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
                     <Sheet>
@@ -148,7 +148,7 @@ const mainNavItems: NavItem[] = [
         </div>
 
         <div v-if="props.breadcrumbs.length > 1" class="border-sidebar-border/70 flex w-full border-b bg-zinc-50 dark:bg-zinc-800">
-            <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-zinc-500 md:max-w-7xl">
+            <div class="mx-auto flex h-12 w-full items-center justify-start px-4 text-zinc-500 not-full-width:md:max-w-7xl">
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>
         </div>
