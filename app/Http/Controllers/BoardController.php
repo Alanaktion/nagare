@@ -1,18 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Board\CreateBoardRequest;
 use App\Http\Requests\Board\UpdateBoardRequest;
 use App\Models\Board;
 use App\Models\Sprint;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Inertia\Response;
 
-class BoardController extends Controller
+final class BoardController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         return Inertia::render('board/Index', [
             'boards' => $request->user()->boards()
@@ -22,7 +26,7 @@ class BoardController extends Controller
         ]);
     }
 
-    public function show(Board $board)
+    public function show(Board $board): Response|RedirectResponse
     {
         if ($board->sprint_cycle) {
             $sprint = $board->currentSprint();
@@ -32,7 +36,7 @@ class BoardController extends Controller
 
         // Show Kanban boards
         $board->load('statuses', 'users', 'issues', 'issues.assigned');
-        if ($board->type == Board::TYPE_SCRUM) {
+        if ($board->type === Board::TYPE_SCRUM) {
             $board->load('stories');
         }
 
@@ -41,14 +45,14 @@ class BoardController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(): Response
     {
         return Inertia::render('board/Create', [
             'boardTypes' => Board::TYPE_DESCRIPTIONS,
         ]);
     }
 
-    public function store(CreateBoardRequest $request)
+    public function store(CreateBoardRequest $request): RedirectResponse
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
@@ -65,7 +69,7 @@ class BoardController extends Controller
         return redirect()->route('boards.show', $board);
     }
 
-    public function update(Board $board, UpdateBoardRequest $request)
+    public function update(Board $board, UpdateBoardRequest $request): RedirectResponse
     {
         $board->update($request->validated());
         $sort = 1;
@@ -82,7 +86,7 @@ class BoardController extends Controller
         return redirect()->route('boards.index');
     }
 
-    public function destroy(Board $board)
+    public function destroy(Board $board): RedirectResponse
     {
         Gate::authorize('delete', $board);
         $board->delete();
@@ -90,7 +94,7 @@ class BoardController extends Controller
         return redirect()->route('boards.index');
     }
 
-    public function showSprint(Board $board, Sprint $sprint)
+    public function showSprint(Board $board, Sprint $sprint): Response
     {
         // TODO: ensure sprint belongs to board!
         // TODO: load stories/issues filtered by sprint

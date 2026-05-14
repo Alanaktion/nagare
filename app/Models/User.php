@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Models\Traits\HasProfilePhoto;
@@ -9,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+final class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, HasProfilePhoto, Notifiable;
@@ -23,6 +25,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+    ];
+
+    protected $attributes = [
+        'profile_photo_path' => null,
     ];
 
     /**
@@ -45,25 +51,6 @@ class User extends Authenticatable
         'avatar',
     ];
 
-    public function __construct()
-    {
-        parent::__construct();
-        static::deleting(fn (User $user) => $user->deleteProfilePhoto());
-    }
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
-
     public function ownedBoards(): HasMany
     {
         return $this->hasMany(Board::class);
@@ -82,5 +69,23 @@ class User extends Authenticatable
     public function assignedIssues(): HasMany
     {
         return $this->hasMany(Issue::class, 'assigned_id');
+    }
+
+    protected static function booted(): void
+    {
+        self::deleting(fn (User $user) => $user->deleteProfilePhoto());
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 }

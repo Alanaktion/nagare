@@ -1,53 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Database\Eloquent\BroadcastsEvents;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Issue extends Model
+final class Issue extends Model
 {
     use BroadcastsEvents;
     use SoftDeletes;
 
-    public const ROLE_EPIC = 'epic';
+    public const string ROLE_EPIC = 'epic';
 
-    public const ROLE_STORY = 'story';
+    public const string ROLE_STORY = 'story';
 
-    public const ROLE_TASK = 'task';
+    public const string ROLE_TASK = 'task';
 
-    public const ROLES = [self::ROLE_EPIC, self::ROLE_STORY, self::ROLE_TASK];
+    public const array ROLES = [self::ROLE_EPIC, self::ROLE_STORY, self::ROLE_TASK];
 
     protected $fillable = ['name', 'description', 'assigned_id', 'status_id', 'sort'];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'closed_at' => 'datetime',
-        ];
-    }
-
-    public function __construct()
-    {
-        parent::__construct();
-
-        static::updating(function (Issue $issue) {
-            if ($issue->isDirty('status_id')) {
-                if ($issue->status->is_closed) {
-                    $issue->closed_at = now();
-                } else {
-                    $issue->closed_at = null;
-                }
-            }
-        });
-    }
 
     /**
      * Get the channels that model events should broadcast on.
@@ -62,28 +38,49 @@ class Issue extends Model
         ];
     }
 
-    public function author()
+    public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
     }
 
-    public function assigned()
+    public function assigned(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_id');
     }
 
-    public function board()
+    public function board(): BelongsTo
     {
         return $this->belongsTo(Board::class);
     }
 
-    public function parent()
+    public function parent(): BelongsTo
     {
-        return $this->belongsTo(static::class, 'parent_id');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
-    public function status()
+    public function status(): BelongsTo
     {
         return $this->belongsTo(Status::class);
+    }
+
+    protected static function booted(): void
+    {
+        self::updating(function (Issue $issue): void {
+            if ($issue->isDirty('status_id')) {
+                $issue->closed_at = $issue->status->is_closed ? now() : null;
+            }
+        });
+    }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'closed_at' => 'datetime',
+        ];
     }
 }

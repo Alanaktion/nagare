@@ -1,19 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Issue\CreateIssueRequest;
 use App\Http\Requests\Issue\UpdateIssueRequest;
 use App\Models\Issue;
 use App\Models\Status;
+use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
+use Inertia\Response;
 
-class IssueController extends Controller
+final class IssueController extends Controller
 {
     /**
      * Display a listing of issues.
      */
-    public function index()
+    public function index(): void
     {
         // TODO: Do we have a listing of all issues assigned to the user?
         // What could be most helpful?
@@ -22,7 +26,7 @@ class IssueController extends Controller
     /**
      * Show the form for creating a new issue.
      */
-    public function create()
+    public function create(): void
     {
         //
     }
@@ -30,7 +34,7 @@ class IssueController extends Controller
     /**
      * Store a newly created issue in storage.
      */
-    public function store(CreateIssueRequest $request, Issue $issue)
+    public function store(CreateIssueRequest $request, Issue $issue): Issue|RedirectResponse
     {
         /** @var \App\Models\User */
         $user = $request->user();
@@ -53,7 +57,7 @@ class IssueController extends Controller
     /**
      * Display the issue.
      */
-    public function show(Issue $issue)
+    public function show(Issue $issue): Response
     {
         $issue->load('board', 'board.users', 'board.statuses', 'author', 'assigned', 'status');
 
@@ -65,7 +69,7 @@ class IssueController extends Controller
     /**
      * Update the issue in storage.
      */
-    public function update(UpdateIssueRequest $request, Issue $issue)
+    public function update(UpdateIssueRequest $request, Issue $issue): Issue|RedirectResponse
     {
         $issue->update($request->validated());
         if ($request->expectsJson()) {
@@ -78,7 +82,7 @@ class IssueController extends Controller
     /**
      * Remove the issue from storage.
      */
-    public function destroy(Issue $issue)
+    public function destroy(Issue $issue): void
     {
         //
     }

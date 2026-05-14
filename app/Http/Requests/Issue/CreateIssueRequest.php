@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Issue;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateIssueRequest extends FormRequest
+final class CreateIssueRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

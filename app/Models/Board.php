@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,20 +11,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Board extends Model
+final class Board extends Model
 {
     use HasFactory;
     use SoftDeletes;
 
-    public const TYPE_KANBAN = 'kanban';
+    public const string TYPE_KANBAN = 'kanban';
 
-    public const TYPE_SCRUM = 'scrum';
+    public const string TYPE_SCRUM = 'scrum';
 
-    public const ROLE_USER = 'user';
+    public const string ROLE_USER = 'user';
 
-    public const ROLE_ADMIN = 'admin';
+    public const string ROLE_ADMIN = 'admin';
 
-    public const TYPE_DESCRIPTIONS = [
+    public const array TYPE_DESCRIPTIONS = [
         [
             'key' => 'kanban',
             'name' => 'Tasks only (Kanban)',

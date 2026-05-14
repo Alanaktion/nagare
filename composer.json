@@ -1,31 +1,32 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/vue-starter-kit",
+    "name": "alanaktion/nagare",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": [
-        "laravel",
-        "framework"
-    ],
     "license": "MIT",
     "require": {
-        "php": "^8.2",
-        "inertiajs/inertia-laravel": "^2.0",
-        "intervention/image": "^3.11",
-        "laravel/framework": "^12.0",
-        "laravel/reverb": "^1.0",
-        "laravel/tinker": "^2.10.1",
-        "tightenco/ziggy": "^2.4"
+        "php": "^8.4",
+        "inertiajs/inertia-laravel": "^2.0.24",
+        "intervention/image": "^3.11.8",
+        "laravel/framework": "^13.9",
+        "laravel/reverb": "^1.10.2",
+        "laravel/tinker": "^3.0.2",
+        "nunomaduro/essentials": "^1.2.0",
+        "tightenco/ziggy": "^2.6.2"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
-        "laravel/pail": "^1.2.2",
-        "laravel/pint": "^1.18",
-        "laravel/sail": "^1.41",
-        "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.6",
-        "pestphp/pest": "^4.0",
-        "pestphp/pest-plugin-laravel": "^4.0"
+        "fakerphp/faker": "^1.24.1",
+        "larastan/larastan": "^3.9.6",
+        "laravel/boost": "^2.4.6",
+        "laravel/pail": "^1.2.6",
+        "laravel/pint": "^1.29.1",
+        "laravel/sail": "^1.59",
+        "mockery/mockery": "^1.6.12",
+        "nunomaduro/collision": "^8.9.4",
+        "pestphp/pest": "^4.7.0",
+        "pestphp/pest-plugin-browser": "^4.3.1",
+        "pestphp/pest-plugin-laravel": "^4.1.0",
+        "pestphp/pest-plugin-type-coverage": "^4.0.4",
+        "rector/rector": "^2.4.3"
     },
     "autoload": {
         "psr-4": {
@@ -58,6 +59,25 @@
         "dev": [
             "Composer\\Config::disableProcessTimeout",
             "pnpm dlx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74,#5ee288\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"pnpm run dev\" \"php artisan reverb:start\" --names=server,queue,logs,vite,reverb"
+        ],
+        "lint": [
+            "pint --parallel",
+            "rector",
+            "npm run lint"
+        ],
+        "test:type-coverage": "pest --type-coverage --min=100",
+        "test:lint": [
+            "pint --parallel --test",
+            "rector --dry-run",
+            "npm run test:lint"
+        ],
+        "test:unit": "pest --parallel --coverage --exactly=100.0",
+        "test:types": "phpstan",
+        "test": [
+            "@test:type-coverage",
+            "@test:unit",
+            "@test:lint",
+            "@test:types"
         ]
     },
     "extra": {
@@ -66,6 +86,7 @@
         }
     },
     "config": {
+        "bump-after-update": true,
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,

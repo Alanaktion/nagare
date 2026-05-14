@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Sprint extends Model
+final class Sprint extends Model
 {
     public static function dateSlug(string $cycle, int $start): string
     {
@@ -16,7 +19,7 @@ class Sprint extends Model
         };
     }
 
-    public function board()
+    public function board(): BelongsTo
     {
         return $this->belongsTo(Board::class);
     }

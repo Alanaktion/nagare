@@ -1,31 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Policies;
 
 use App\Models\Board;
 use App\Models\User;
 
-class BoardPolicy
+final class BoardPolicy
 {
     /**
      * Determine whether the user can view any models.
      */
-    public function viewAny(User $user): bool
+    public function viewAny(): bool
     {
         return true;
-    }
-
-    /**
-     * Get the user's role within the board, or null if they are not a member
-     */
-    protected function userRole(User $user, Board $board): ?string
-    {
-        $pivot = $board->users()->newPivotQuery()
-            ->where('user_id', $user->id)
-            ->select(['role'])
-            ->first();
-
-        return $pivot->role ?? null;
     }
 
     /**
@@ -39,7 +28,7 @@ class BoardPolicy
     /**
      * Determine whether the user can create models.
      */
-    public function create(User $user): bool
+    public function create(): bool
     {
         return true;
     }
@@ -74,5 +63,18 @@ class BoardPolicy
     public function forceDelete(User $user, Board $board): bool
     {
         return $this->delete($user, $board);
+    }
+
+    /**
+     * Get the user's role within the board, or null if they are not a member
+     */
+    private function userRole(User $user, Board $board): ?string
+    {
+        $pivot = $board->users()->newPivotQuery()
+            ->where('user_id', $user->id)
+            ->select(['role'])
+            ->first();
+
+        return $pivot->role ?? null;
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class ProfileController extends Controller
+final class ProfileController extends Controller
 {
     /**
      * Show the user's profile settings page.
@@ -70,7 +72,7 @@ class ProfileController extends Controller
     /**
      * Delete the current user's profile photo.
      */
-    public function destroyPhoto(Request $request)
+    public function destroyPhoto(Request $request): RedirectResponse
     {
         $request->user()->deleteProfilePhoto();
 

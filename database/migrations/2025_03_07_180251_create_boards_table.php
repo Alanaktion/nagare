@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,7 +13,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('boards', function (Blueprint $table) {
+        Schema::create('boards', function (Blueprint $table): void {
             $table->id();
             $table->string('type')->default('kanban');
             $table->string('sprint_cycle')->nullable();
@@ -20,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-        Schema::create('sprints', function (Blueprint $table) {
+        Schema::create('sprints', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('board_id')->constrained('boards');
             $table->string('slug'); // Slug should be determined by start date, according to board's sprint_cycle
@@ -30,7 +32,7 @@ return new class extends Migration
             $table->timestamp('closed_at')->nullable();
             $table->unique(['board_id', 'slug']);
         });
-        Schema::create('statuses', function (Blueprint $table) {
+        Schema::create('statuses', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('board_id')->contrained('boards');
             $table->string('name');

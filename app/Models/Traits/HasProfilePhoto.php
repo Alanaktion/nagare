@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Traits;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -18,7 +20,7 @@ trait HasProfilePhoto
      */
     public function updateProfilePhoto(UploadedFile $photo, string $storagePath = 'profile-photos'): void
     {
-        tap($this->profile_photo_path, function ($previous) use ($photo, $storagePath) {
+        tap($this->profile_photo_path, function ($previous) use ($photo, $storagePath): void {
             try {
                 $data = ImageManager::gd()
                     ->read($photo->getPathname())
@@ -62,11 +64,9 @@ trait HasProfilePhoto
      */
     protected function avatar(): Attribute
     {
-        return Attribute::get(function (): ?string {
-            return $this->profile_photo_path
-                    ? $this->getDisk()->url($this->profile_photo_path)
-                    : null;
-        });
+        return Attribute::get(fn (): ?string => $this->profile_photo_path
+                ? $this->getDisk()->url($this->profile_photo_path)
+                : null);
     }
 
     protected function getDisk(): FilesystemAdapter
