@@ -36,9 +36,6 @@ jobs:
       - name: Build Assets
         run: pnpm run build
 
-      - name: Install Playwright Browsers
-        run: pnpm dlx playwright install --with-deps
-
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
