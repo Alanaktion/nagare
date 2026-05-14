@@ -23,19 +23,21 @@ jobs:
           tools: composer:v2
           coverage: xdebug
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+      - uses: pnpm/action-setup@v4
 
-      - name: Install Node Dependencies
-        run: npm install
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - name: Install Node dependencies
+        run: pnpm install
 
       - name: Build Assets
-        run: npm run build
+        run: pnpm run build
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: pnx playwright install --with-deps
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
