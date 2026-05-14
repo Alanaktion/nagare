@@ -28,17 +28,15 @@ final class BoardController extends Controller
 
     public function show(Board $board): Response|RedirectResponse
     {
+        Gate::authorize('view', $board);
+
         if ($board->sprint_cycle) {
             $sprint = $board->currentSprint();
 
             return redirect()->route('boards.show-sprint', [$board, $sprint]);
         }
 
-        // Show Kanban boards
         $board->load('statuses', 'users', 'issues', 'issues.assigned');
-        if ($board->type === Board::TYPE_SCRUM) {
-            $board->load('stories');
-        }
 
         return Inertia::render('board/Show', [
             'board' => $board,
@@ -56,7 +54,8 @@ final class BoardController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        $board = $user->boards()->create($request->validated());
+        $board = $user->ownedBoards()->create($request->safe()->only(['name', 'type']));
+        $board->users()->attach($user, ['role' => Board::ROLE_ADMIN]);
         $sort = 1;
         foreach ($request->validated('statuses') as $status) {
             $board->statuses()->create([
@@ -71,7 +70,7 @@ final class BoardController extends Controller
 
     public function update(Board $board, UpdateBoardRequest $request): RedirectResponse
     {
-        $board->update($request->validated());
+        $board->update($request->safe()->only(['name', 'type']));
         $sort = 1;
         foreach ($request->validated('statuses') as $status) {
             $board->statuses()->updateOrCreate([

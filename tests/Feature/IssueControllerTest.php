@@ -31,7 +31,7 @@ test('issue defaults to first status when none provided', function (): void {
     $user = User::factory()->create();
     $board = Board::factory()->create();
     $board->users()->attach($user, ['role' => Board::ROLE_USER]);
-    Status::factory()->for($board)->create(['sort' => 1]);
+    $firstStatus = Status::factory()->for($board)->create(['sort' => 1]);
     Status::factory()->for($board)->create(['sort' => 2]);
 
     $response = $this->actingAs($user)->postJson(route('issues.store'), [
@@ -42,7 +42,7 @@ test('issue defaults to first status when none provided', function (): void {
     $response->assertSuccessful();
     $issue = Issue::where('name', 'New Issue')->first();
     expect($issue)->not->toBeNull();
-    expect($issue->status->sort)->toBe(1.0);
+    expect($issue->status_id)->toBe($firstStatus->id);
 });
 
 test('issue name is required', function (): void {

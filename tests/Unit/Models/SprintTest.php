@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Models\Sprint;
 
 test('weekly slug formats correctly', function (): void {
-    $timestamp = mktime(0, 0, 0, 3, 10, 2025); // March 10, 2025 = Week 10
+    $timestamp = mktime(0, 0, 0, 3, 3, 2025); // March 3, 2025 = ISO Week 10
 
     expect(Sprint::dateSlug('weekly', $timestamp))->toBe('2025W10');
 });

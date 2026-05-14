@@ -19,12 +19,9 @@ final class IssueFactory extends Factory
 
     public function definition(): array
     {
-        $board = Board::factory()->create();
-        $status = Status::factory()->for($board)->create();
-
         return [
-            'board_id' => $board->id,
-            'status_id' => $status->id,
+            'board_id' => Board::factory(),
+            'status_id' => Status::factory(),
             'author_id' => User::factory(),
             'assigned_id' => null,
             'name' => fake()->sentence(4),
