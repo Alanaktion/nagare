@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link href="{{ asset('favicon.svg') }}" type="image/svg+xml" rel="icon">
 
-        <title inertia>{{ config('app.name', 'Nagare') }}</title>
+        <title data-inertia>{{ config('app.name', 'Nagare') }}</title>
 
         @routes
         @vite(['resources/js/app.ts'])
