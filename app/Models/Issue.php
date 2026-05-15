@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Database\Eloquent\BroadcastsEvents;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 final class Issue extends Model
 {
     use BroadcastsEvents;
+    use HasFactory;
     use SoftDeletes;
 
     public const string ROLE_EPIC = 'epic';
