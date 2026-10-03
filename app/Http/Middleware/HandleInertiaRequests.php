@@ -41,6 +41,10 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'sidebarBoards' => fn () => $request->user()
+                ? $request->user()->boards()->orderBy('name')->get(['boards.id', 'boards.name'])
+                    ->map(fn ($board) => ['id' => $board->id, 'name' => $board->name])
+                : [],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

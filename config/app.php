@@ -123,4 +123,22 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated IP addresses or CIDR ranges of reverse proxies whose
+    | X-Forwarded-* headers are trusted. Use "*" to trust every proxy. The
+    | default covers localhost and Docker's default bridge networks.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES', '127.0.0.1,::1,172.16.0.0/12') === '*'
+        ? '*'
+        : array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TRUSTED_PROXIES', '127.0.0.1,::1,172.16.0.0/12')),
+        ))),
+
 ];

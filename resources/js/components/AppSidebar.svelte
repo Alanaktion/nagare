@@ -1,11 +1,9 @@
 <script lang="ts">
-    import { Link } from '@inertiajs/svelte';
-    import BookOpen from '@lucide/svelte/icons/book-open';
-    import FolderGit2 from '@lucide/svelte/icons/folder-git-2';
+    import { Link, page } from '@inertiajs/svelte';
+    import Kanban from '@lucide/svelte/icons/kanban';
     import LayoutGrid from '@lucide/svelte/icons/layout-grid';
     import type { Snippet } from 'svelte';
     import AppLogo from '@/components/AppLogo.svelte';
-    import NavFooter from '@/components/NavFooter.svelte';
     import NavMain from '@/components/NavMain.svelte';
     import NavUser from '@/components/NavUser.svelte';
     import {
@@ -19,6 +17,7 @@
     } from '@/components/ui/sidebar';
     import { toUrl } from '@/lib/utils';
     import { dashboard } from '@/routes';
+    import { index as boardsIndex, show as showBoard } from '@/routes/boards';
     import type { NavItem } from '@/types';
 
     let {
@@ -35,18 +34,13 @@
         },
     ];
 
-    const footerNavItems: NavItem[] = [
-        {
-            title: 'Repository',
-            href: 'https://github.com/laravel/svelte-starter-kit',
-            icon: FolderGit2,
-        },
-        {
-            title: 'Documentation',
-            href: 'https://laravel.com/docs/starter-kits#svelte',
-            icon: BookOpen,
-        },
-    ];
+    const boardNavItems = $derived<NavItem[]>([
+        { title: 'All boards', href: boardsIndex(), icon: Kanban },
+        ...page.props.sidebarBoards.map((board) => ({
+            title: board.name,
+            href: showBoard(board.id),
+        })),
+    ]);
 </script>
 
 <Sidebar collapsible="icon" variant="inset">
@@ -70,10 +64,10 @@
 
     <SidebarContent>
         <NavMain items={mainNavItems} />
+        <NavMain items={boardNavItems} label="Boards" />
     </SidebarContent>
 
     <SidebarFooter>
-        <NavFooter items={footerNavItems} />
         <NavUser />
     </SidebarFooter>
 </Sidebar>
