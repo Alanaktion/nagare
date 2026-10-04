@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Form } from '@inertiajs/svelte';
+    import { untrack } from 'svelte';
     import { store, update } from '@/actions/App/Http/Controllers/IssueController';
     import InputError from '@/components/InputError.svelte';
     import { Button } from '@/components/ui/button';
@@ -13,14 +14,17 @@
     } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
+    import LabelBadge from '@/components/LabelBadge.svelte';
     import { sprintLabel } from '@/lib/sprints';
-    import type { Board, Issue, IssueRole, Member, Sprint } from '@/types';
+    import { cn } from '@/lib/utils';
+    import type { Board, Issue, IssueRole, Label as BoardLabel, Member, Sprint } from '@/types';
 
     let {
         open = $bindable(false),
         board,
         members,
         stories,
+        labels = [],
         sprints = [],
         sprintId,
         issue,
@@ -32,6 +36,7 @@
         board: Board;
         members: Member[];
         stories: Issue[];
+        labels?: BoardLabel[];
         sprints?: Sprint[];
         sprintId?: number;
         issue?: Issue;
@@ -39,6 +44,22 @@
         statusId?: number;
         parentId?: number;
     } = $props();
+
+    // The checked labels are tracked here, since an empty selection must still be sent to clear them.
+    // svelte-ignore state_referenced_locally
+    let selectedLabelIds: number[] = $state(issue?.labels?.map((label) => label.id) ?? []);
+
+    $effect(() => {
+        if (open) {
+            selectedLabelIds = untrack(() => issue?.labels?.map((label) => label.id) ?? []);
+        }
+    });
+
+    const toggleLabel = (id: number) => {
+        selectedLabelIds = selectedLabelIds.includes(id)
+            ? selectedLabelIds.filter((selected) => selected !== id)
+            : [...selectedLabelIds, id];
+    };
 
     const isEditing = $derived(issue !== undefined);
     const issueRole = $derived(issue?.role ?? role);
@@ -53,6 +74,7 @@
             {...issue ? update.form(issue.id) : store.form(board.id)}
             class="space-y-4"
             options={{ preserveScroll: true }}
+            transform={(data) => ({ ...data, label_ids: selectedLabelIds })}
             onSuccess={() => (open = false)}
         >
             {#snippet children({ errors, processing })}
@@ -114,6 +136,29 @@
                         <InputError message={errors.assigned_id} />
                     </div>
                 </div>
+
+                {#if labels.length > 0}
+                    <fieldset class="grid gap-2">
+                        <legend class="text-sm leading-none font-medium">Labels</legend>
+                        <div class="flex flex-wrap gap-1.5">
+                            {#each labels as boardLabel (boardLabel.id)}
+                                {@const selected = selectedLabelIds.includes(boardLabel.id)}
+                                <button
+                                    type="button"
+                                    aria-pressed={selected}
+                                    class={cn(
+                                        'rounded-full ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none',
+                                        selected ? 'ring-2 ring-foreground/60 ring-offset-1' : 'opacity-60 hover:opacity-100',
+                                    )}
+                                    onclick={() => toggleLabel(boardLabel.id)}
+                                >
+                                    <LabelBadge label={boardLabel} />
+                                </button>
+                            {/each}
+                        </div>
+                        <InputError message={errors['label_ids.0'] ?? errors.label_ids} />
+                    </fieldset>
+                {/if}
 
                 {#if board.has_sprints}
                     <div class="grid gap-2">

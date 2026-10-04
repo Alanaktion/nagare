@@ -4,6 +4,7 @@
     import AppHead from '@/components/AppHead.svelte';
     import BoardForm from '@/components/board/BoardForm.svelte';
     import BoardMembers from '@/components/board/BoardMembers.svelte';
+    import LabelManager from '@/components/board/LabelManager.svelte';
     import Heading from '@/components/Heading.svelte';
     import { Button } from '@/components/ui/button';
     import {
@@ -16,15 +17,17 @@
         DialogTrigger,
     } from '@/components/ui/dialog';
     import { edit, index, show } from '@/routes/boards';
-    import type { Board, Member } from '@/types';
+    import type { Board, Label, Member } from '@/types';
 
     let {
         board,
         members,
+        labels,
         candidates,
     }: {
         board: { data: Board };
         members: { data: Member[] };
+        labels: { data: Label[] };
         candidates?: { data: Member[] };
     } = $props();
 
@@ -48,6 +51,8 @@
         <Heading title="Board settings" description="Rename the board, change its workflow, or edit its statuses." />
         <BoardForm action={update.form(current.id)} board={current} submitLabel="Save changes" />
     </div>
+
+    <LabelManager board={current} labels={labels.data} />
 
     <BoardMembers board={current} members={members.data} candidates={candidates?.data} />
 

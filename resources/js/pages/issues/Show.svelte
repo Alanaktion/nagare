@@ -4,6 +4,7 @@
     import { destroy } from '@/actions/App/Http/Controllers/IssueController';
     import AppHead from '@/components/AppHead.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
+    import LabelBadge from '@/components/LabelBadge.svelte';
     import UserAvatar from '@/components/UserAvatar.svelte';
     import { Badge } from '@/components/ui/badge';
     import { Button } from '@/components/ui/button';
@@ -20,13 +21,14 @@
     import { index, show as showBoard } from '@/routes/boards';
     import { show } from '@/routes/issues';
     import { sprintLabel } from '@/lib/sprints';
-    import type { Board, Issue, Member, Sprint } from '@/types';
+    import type { Board, Issue, Label, Member, Sprint } from '@/types';
 
     let {
         issue,
         parent,
         board,
         members,
+        labels,
         stories,
         openSprints,
     }: {
@@ -34,6 +36,7 @@
         parent: { data: Issue } | null;
         board: { data: Board };
         members: { data: Member[] };
+        labels: { data: Label[] };
         stories: { data: Issue[] };
         openSprints: { data: Sprint[] };
     } = $props();
@@ -58,7 +61,7 @@
                     router.visit(showBoard(board.data.id));
                 }
             })
-            .listen('.board.updated', () => router.reload({ only: ['board', 'members', 'stories', 'openSprints'] }))
+            .listen('.board.updated', () => router.reload({ only: ['issue', 'board', 'members', 'labels', 'stories', 'openSprints'] }))
             .listen('.board.deleted', () => router.visit(index()));
 
         return () => getEcho().leave(channelName);
@@ -115,6 +118,16 @@
                 {/if}
             </dd>
         </div>
+        {#if current.labels && current.labels.length > 0}
+            <div class="space-y-1 sm:col-span-3">
+                <dt class="text-muted-foreground">Labels</dt>
+                <dd class="flex flex-wrap gap-1.5">
+                    {#each current.labels as label (label.id)}
+                        <LabelBadge {label} />
+                    {/each}
+                </dd>
+            </div>
+        {/if}
         {#if board.data.has_sprints}
             <div class="space-y-1">
                 <dt class="text-muted-foreground">Sprint</dt>
@@ -148,6 +161,7 @@
     board={board.data}
     members={members.data}
     stories={stories.data}
+    labels={labels.data}
     sprints={openSprints.data}
     issue={current}
 />

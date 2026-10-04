@@ -4,6 +4,7 @@ namespace App\Actions\Issues;
 
 use App\Events\IssueUpdated;
 use App\Models\Issue;
+use Illuminate\Support\Arr;
 
 class UpdateIssue
 {
@@ -18,7 +19,13 @@ class UpdateIssue
      */
     public function handle(Issue $issue, array $data): Issue
     {
+        $labelIds = Arr::pull($data, 'label_ids');
+
         $issue->update($data);
+
+        if ($labelIds !== null) {
+            $issue->labels()->sync($labelIds);
+        }
 
         $renumbered = $issue->wasChanged(['sort', 'status_id'])
             ? $this->rebalanceSort->handle($issue->board_id, $issue->status_id)

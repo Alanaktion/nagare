@@ -34,6 +34,6 @@ class IssueCreated implements ShouldBroadcast, ShouldDispatchAfterCommit
      */
     public function broadcastWith(): array
     {
-        return ['issue' => (new IssueResource($this->issue->load('assignee')))->resolve()];
+        return ['issue' => (new IssueResource($this->issue->load(['assignee', 'labels'])))->resolve()];
     }
 }

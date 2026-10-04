@@ -32,6 +32,7 @@ class IssueResource extends JsonResource
             'status' => new StatusResource($this->whenLoaded('status')),
             'board' => new BoardResource($this->whenLoaded('board')),
             'assignee' => new UserResource($this->whenLoaded('assignee')),
+            'labels' => LabelResource::collection($this->whenLoaded('labels')),
             'closed_at' => $this->closed_at?->toIso8601String(),
         ];
     }

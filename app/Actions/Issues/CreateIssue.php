@@ -6,6 +6,7 @@ use App\Events\IssueCreated;
 use App\Models\Board;
 use App\Models\Issue;
 use App\Models\User;
+use Illuminate\Support\Arr;
 
 class CreateIssue
 {
@@ -21,12 +22,15 @@ class CreateIssue
         $statusId = $data['status_id'] ?? $board->statuses()->value('id');
         $lastSort = $board->issues()->where('status_id', $statusId)->max('sort');
 
+        $labelIds = Arr::pull($data, 'label_ids', []);
+
         $issue = new Issue($data);
         $issue->board_id = $board->id;
         $issue->author_id = $author->id;
         $issue->status_id = $statusId;
         $issue->sort = ($lastSort ?? 0) + 1;
         $issue->save();
+        $issue->labels()->sync($labelIds);
 
         IssueCreated::dispatch($issue);
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Concerns\HasProfilePhoto;
+use App\Concerns\SearchesText;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -42,7 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     protected $appends = ['avatar'];
 
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasProfilePhoto, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, HasProfilePhoto, Notifiable, PasskeyAuthenticatable, SearchesText, TwoFactorAuthenticatable;
 
     /**
      * Get the attributes that should be cast.
@@ -80,8 +81,9 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             return;
         }
 
-        $term = '%'.addcslashes($search, '%_\\').'%';
-
-        $query->where(fn (Builder $users) => $users->where('name', 'like', $term)->orWhere('email', 'like', $term));
+        $query->where(function (Builder $users) use ($search): void {
+            self::whereColumnContains($users, 'name', $search);
+            self::whereColumnContains($users, 'email', $search, 'or');
+        });
     }
 }

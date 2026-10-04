@@ -5,6 +5,7 @@ namespace App\Actions\Boards;
 use App\Enums\IssueRole;
 use App\Http\Resources\BoardResource;
 use App\Http\Resources\IssueResource;
+use App\Http\Resources\LabelResource;
 use App\Http\Resources\SprintResource;
 use App\Http\Resources\UserResource;
 use App\Models\Board;
@@ -31,7 +32,7 @@ class ShowBoard
      */
     public function handle(Board $board, User $viewer, ?Sprint $sprint = null, bool $withOlderClosed = false): Response
     {
-        $issues = $board->issues()->with('assignee')->withCount('children')->orderBy('sort');
+        $issues = $board->issues()->with(['assignee', 'labels'])->withCount('children')->orderBy('sort');
 
         if ($board->has_sprints) {
             $issues->inSprintView($sprint?->id);
@@ -59,6 +60,7 @@ class ShowBoard
             'board' => new BoardResource($board->load('statuses')->withRoleFor($viewer)),
             'issues' => IssueResource::collection($issues->get()),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
+            'labels' => LabelResource::collection($board->labels()->get()),
             'sprint' => $sprint ? new SprintResource($sprint) : null,
             'sprints' => SprintResource::collection(
                 $board->has_sprints ? $board->sprints()->reorder('start_date', 'desc')->limit(30)->get() : collect()

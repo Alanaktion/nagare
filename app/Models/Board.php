@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SearchesText;
 use App\Enums\BoardRole;
 use App\Enums\SprintCycle;
 use Carbon\CarbonImmutable;
@@ -31,7 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Board extends Model
 {
     /** @use HasFactory<BoardFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, SearchesText, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -97,6 +98,14 @@ class Board extends Model
     }
 
     /**
+     * @return HasMany<Label, $this>
+     */
+    public function labels(): HasMany
+    {
+        return $this->hasMany(Label::class)->orderBy('name');
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function creator(): BelongsTo
@@ -121,6 +130,17 @@ class Board extends Model
     protected function forMember(Builder $query, User $user): void
     {
         $query->whereHas('users', fn (Builder $members) => $members->whereKey($user->getKey()));
+    }
+
+    /**
+     * Boards whose name contains the search text.
+     *
+     * @param  Builder<Board>  $query
+     */
+    #[Scope]
+    protected function matching(Builder $query, string $search): void
+    {
+        self::whereColumnContains($query, 'name', $search);
     }
 
     /**

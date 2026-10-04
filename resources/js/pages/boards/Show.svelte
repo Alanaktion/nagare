@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Link, router, setLayoutProps } from '@inertiajs/svelte';
+    import { Link, page, router, setLayoutProps } from '@inertiajs/svelte';
     import { onMount } from 'svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import Settings from '@lucide/svelte/icons/settings';
@@ -8,19 +8,27 @@
     import AppHead from '@/components/AppHead.svelte';
     import EmptyState from '@/components/EmptyState.svelte';
     import IssueCard from '@/components/board/IssueCard.svelte';
+    import IssueFilters from '@/components/board/IssueFilters.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
     import SprintNav from '@/components/board/SprintNav.svelte';
     import { Button } from '@/components/ui/button';
     import { getEcho } from '@/lib/echo';
+    import {
+        applyFilters,
+        filtersFromSearch,
+        filtersToQuery,
+        noFilters,
+    } from '@/lib/filters';
     import { sortBetween } from '@/lib/sort';
     import { backlog, edit, index, show } from '@/routes/boards';
     import { show as showSprint } from '@/routes/boards/sprints';
-    import type { Board, Issue, IssueRole, Member, Sprint } from '@/types';
+    import type { Board, Issue, IssueRole, Label, Member, Sprint } from '@/types';
 
     let {
         board,
         issues,
         members,
+        labels,
         sprint,
         sprints,
         openSprints,
@@ -33,6 +41,7 @@
         board: { data: Board };
         issues: { data: Issue[] };
         members: { data: Member[] };
+        labels: { data: Label[] };
         sprint: { data: Sprint } | null;
         sprints: { data: Sprint[] };
         openSprints: { data: Sprint[] };
@@ -45,8 +54,31 @@
 
     const current = $derived(board.data);
     const statuses = $derived(current.statuses ?? []);
-    const stories = $derived(issues.data.filter((issue) => issue.role === 'story'));
-    const tasks = $derived(issues.data.filter((issue) => issue.role !== 'story'));
+    const currentUserId = $derived(page.props.auth.user.id);
+
+    // The filters live in the query string so a filtered view can be shared or reloaded.
+    // svelte-ignore state_referenced_locally
+    let filters = $state(filtersFromSearch(page.url.includes('?') ? page.url.slice(page.url.indexOf('?')) : ''));
+
+    $effect(() => {
+        const params = new URLSearchParams(window.location.search);
+        for (const key of ['q', 'assignee', 'label', 'mine']) {
+            params.delete(key);
+        }
+        for (const [key, value] of Object.entries(filtersToQuery(filters))) {
+            params.set(key, value);
+        }
+        const search = params.size > 0 ? `?${params}` : '';
+        if (search !== window.location.search) {
+            window.history.replaceState(window.history.state, '', `${window.location.pathname}${search}`);
+        }
+    });
+
+    const visibleIssues = $derived(applyFilters(issues.data, filters, currentUserId));
+    const allStories = $derived(issues.data.filter((issue) => issue.role === 'story'));
+    const stories = $derived(visibleIssues.filter((issue) => issue.role === 'story'));
+    const tasks = $derived(visibleIssues.filter((issue) => issue.role !== 'story'));
+    const totalTasks = $derived(issues.data.filter((issue) => issue.role !== 'story').length);
     const gridStyle = $derived(
         `grid-template-columns: repeat(${statuses.length + (current.has_stories ? 1 : 0)}, minmax(16rem, 1fr))`,
     );
@@ -61,12 +93,12 @@
     };
     const tasksPerStatus = $derived(countBy(tasks, (task) => task.status_id));
     const tasksPerStory = $derived(countBy(tasks, (task) => task.parent_id));
-    const storyNames = $derived(new Map(stories.map((story) => [story.id, story.name])));
+    const storyNames = $derived(new Map(allStories.map((story) => [story.id, story.name])));
     const statusNames = $derived(new Map(statuses.map((status) => [status.id, status.name])));
 
     // Kanban boards and backlogs hide long-closed issues; this toggles them.
     const closedToggleUrl = $derived.by(() => {
-        const options = withOlderClosed ? {} : { query: { closed: 'all' } };
+        const options = { query: { ...filtersToQuery(filters), ...(withOlderClosed ? {} : { closed: 'all' }) } };
         return current.has_sprints ? backlog(current.id, options) : show(current.id, options);
     });
 
@@ -80,7 +112,7 @@
 
     const buildZones = () => {
         const built: Record<string, Issue[]> = {};
-        const ordered = [...(current.has_stories ? tasks : issues.data)].sort(
+        const ordered = [...(current.has_stories ? tasks : visibleIssues)].sort(
             (a, b) => a.sort - b.sort || a.id - b.id,
         );
         for (const issue of ordered) {
@@ -233,7 +265,7 @@
             )
             .listen('.board.updated', () =>
                 router.reload({
-                    only: ['board', 'issues', 'members', 'sprint', 'sprints', 'openSprints', 'previousSprint', 'nextSprint'],
+                    only: ['board', 'issues', 'members', 'labels', 'sprint', 'sprints', 'openSprints', 'previousSprint', 'nextSprint'],
                 }),
             )
             .listen('.board.deleted', () => router.visit(index()));
@@ -353,6 +385,10 @@
         </div>
     </div>
 
+    {#if issues.data.length > 0}
+        <IssueFilters bind:filters members={members.data} labels={labels.data} shown={tasks.length} total={totalTasks} />
+    {/if}
+
     {#if !sprint && (olderClosedCount > 0 || withOlderClosed)}
         <p class="text-sm text-muted-foreground">
             {#if withOlderClosed}
@@ -381,6 +417,10 @@
                 <Button size="sm" onclick={() => openCreate('story')}><Plus class="size-4" /> New story</Button>
                 <Button size="sm" variant="outline" onclick={() => openCreate('task')}><Plus class="size-4" /> New task</Button>
             </div>
+        </EmptyState>
+    {:else if current.has_stories && visibleIssues.length === 0}
+        <EmptyState message="No issues match the filters.">
+            <Button size="sm" variant="outline" onclick={() => (filters = { ...noFilters })}>Clear filters</Button>
         </EmptyState>
     {:else if current.has_stories}
         <div class="overflow-x-auto">
@@ -471,7 +511,8 @@
         bind:open={dialogOpen}
         board={current}
         members={members.data}
-        {stories}
+        stories={allStories}
+        labels={labels.data}
         sprints={openSprints.data}
         sprintId={sprint && !sprint.data.closed_at ? sprint.data.id : undefined}
         role={dialogRole}

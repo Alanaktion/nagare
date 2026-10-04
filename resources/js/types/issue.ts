@@ -1,4 +1,5 @@
 import type { Board, BoardRole, Status } from './board';
+import type { Label } from './label';
 
 export type IssueRole = 'epic' | 'story' | 'task';
 
@@ -26,6 +27,7 @@ export type Issue = {
     author_id: number | null;
     assigned_id: number | null;
     assignee?: Member | null;
+    labels?: Label[];
     /** Present when issues are listed outside their board, such as on a profile. */
     board?: Pick<Board, 'id' | 'name'>;
     status?: Status;

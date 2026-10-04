@@ -4,9 +4,11 @@ namespace Database\Seeders;
 
 use App\Enums\BoardRole;
 use App\Enums\IssueRole;
+use App\Enums\LabelColor;
 use App\Enums\SprintCycle;
 use App\Models\Board;
 use App\Models\Issue;
+use App\Models\Label;
 use App\Models\Sprint;
 use App\Models\Status;
 use App\Models\User;
@@ -27,6 +29,13 @@ class DemoSeeder extends Seeder
      * @var Collection<int, User>
      */
     private Collection $team;
+
+    /**
+     * Each board's labels by name.
+     *
+     * @var array<int, array<string, Label>>
+     */
+    private array $labels = [];
 
     /**
      * Next sort value per status id.
@@ -75,7 +84,7 @@ class DemoSeeder extends Seeder
         foreach (['Build the new navigation', 'Set up a staging site'] as $name) {
             $this->issue($board, $doing, $name);
         }
-        $this->issue($board, $review, 'Accessible colour palette');
+        $this->issue($board, $review, 'Accessible colour palette', labels: ['Design']);
         foreach (['Collect analytics baseline', 'Interview five customers', 'Moodboard'] as $index => $name) {
             $this->issue($board, $done, $name, closedDaysAgo: $index + 2);
         }
@@ -98,8 +107,8 @@ class DemoSeeder extends Seeder
         $next = $this->sprint($board, today()->addWeek());
 
         $onboarding = $this->issue($board, $doing, 'Onboarding flow', role: IssueRole::Story, sprint: $current);
-        $this->issue($board, $done, 'Welcome screen design', parent: $onboarding, sprint: $previous, closedDaysAgo: 8);
-        $this->issue($board, $done, 'Sign-up form', parent: $onboarding, sprint: $current, closedDaysAgo: 1);
+        $this->issue($board, $done, 'Welcome screen design', parent: $onboarding, sprint: $previous, closedDaysAgo: 8, labels: ['Design']);
+        $this->issue($board, $done, 'Sign-up form', parent: $onboarding, sprint: $current, closedDaysAgo: 1, labels: ['Feature']);
         $this->issue($board, $review, 'Email verification step', parent: $onboarding, sprint: $current);
         $this->issue($board, $doing, 'Permissions prompt copy', parent: $onboarding, sprint: $current);
         $this->issue($board, $todo, 'Skip onboarding for returning users', parent: $onboarding, sprint: $next);
@@ -110,13 +119,13 @@ class DemoSeeder extends Seeder
         $this->issue($board, $todo, 'Quiet hours', parent: $notifications);
 
         $darkMode = $this->issue($board, $done, 'Dark mode', role: IssueRole::Story, sprint: $previous, closedDaysAgo: 7);
-        $this->issue($board, $done, 'Theme tokens', parent: $darkMode, sprint: $previous, closedDaysAgo: 9);
+        $this->issue($board, $done, 'Theme tokens', parent: $darkMode, sprint: $previous, closedDaysAgo: 9, labels: ['Design', 'Chore']);
         $this->issue($board, $done, 'Settings toggle', parent: $darkMode, sprint: $previous, closedDaysAgo: 7);
 
         $this->issue($board, $todo, 'Offline mode', role: IssueRole::Story);
 
-        $this->issue($board, $doing, 'Fix crash on Android 12 resume', sprint: $current);
-        $this->issue($board, $todo, 'Update app store screenshots', sprint: $next);
+        $this->issue($board, $doing, 'Fix crash on Android 12 resume', sprint: $current, labels: ['Bug']);
+        $this->issue($board, $todo, 'Update app store screenshots', sprint: $next, labels: ['Chore']);
         $this->issue($board, $todo, 'Investigate slow cold start');
     }
 
@@ -135,9 +144,9 @@ class DemoSeeder extends Seeder
         $this->issue($board, $resolved, 'Password reset email not arriving', sprint: $previous, closedDaysAgo: 35);
         $this->issue($board, $resolved, 'Invoice shows the wrong currency', sprint: $previous, closedDaysAgo: 31);
         $this->issue($board, $resolved, 'Export to CSV times out', sprint: $current, closedDaysAgo: 2);
-        $this->issue($board, $investigating, 'Duplicate charges for one customer', sprint: $current, assignee: $member);
+        $this->issue($board, $investigating, 'Duplicate charges for one customer', sprint: $current, assignee: $member, labels: ['Bug']);
         $this->issue($board, $waiting, 'Cannot upload files over 10 MB', sprint: $current);
-        $this->issue($board, $new, 'Typo in the welcome email', sprint: $current);
+        $this->issue($board, $new, 'Typo in the welcome email', sprint: $current, labels: ['Bug']);
         $this->issue($board, $new, 'Feature request: calendar sync');
     }
 
@@ -184,6 +193,10 @@ class DemoSeeder extends Seeder
             $board->users()->attach($user, ['role' => ($user->is($owner) ? BoardRole::Admin : BoardRole::Member)->value]);
         }
 
+        foreach (['Bug' => LabelColor::Red, 'Feature' => LabelColor::Blue, 'Design' => LabelColor::Purple, 'Chore' => LabelColor::Gray] as $labelName => $color) {
+            $this->labels[$board->id][$labelName] = $board->labels()->create(['name' => $labelName, 'color' => $color]);
+        }
+
         $statuses = collect($statusNames)->map(fn (string $statusName, int $position) => $board->statuses()->create([
             'name' => $statusName,
             'sort' => $position,
@@ -213,6 +226,8 @@ class DemoSeeder extends Seeder
      * Create an issue at the bottom of its status. Issues in the closing
      * status are closed `$closedDaysAgo` days ago. Tasks get an assignee
      * from the team unless one is given.
+     *
+     * @param  list<string>  $labels  Names of the board's labels to apply.
      */
     private function issue(
         Board $board,
@@ -223,10 +238,11 @@ class DemoSeeder extends Seeder
         ?Sprint $sprint = null,
         ?User $assignee = null,
         int $closedDaysAgo = 0,
+        array $labels = [],
     ): Issue {
         $this->nextSort[$status->id] = ($this->nextSort[$status->id] ?? 0) + 1;
 
-        return Issue::factory()->inStatus($status)->create([
+        $issue = Issue::factory()->inStatus($status)->create([
             'name' => $name,
             'description' => null,
             'role' => $role,
@@ -238,5 +254,9 @@ class DemoSeeder extends Seeder
             'closed_at' => $status->is_closed ? now()->subDays($closedDaysAgo) : null,
             'updated_at' => now()->subDays($closedDaysAgo),
         ]);
+
+        $issue->labels()->attach(array_map(fn (string $labelName) => $this->labels[$board->id][$labelName]->id, $labels));
+
+        return $issue;
     }
 }

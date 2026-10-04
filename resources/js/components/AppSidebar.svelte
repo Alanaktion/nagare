@@ -2,6 +2,7 @@
     import { Link, page } from '@inertiajs/svelte';
     import Kanban from '@lucide/svelte/icons/kanban';
     import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+    import Search from '@lucide/svelte/icons/search';
     import Users from '@lucide/svelte/icons/users';
     import type { Snippet } from 'svelte';
     import AppLogo from '@/components/AppLogo.svelte';
@@ -17,7 +18,7 @@
         SidebarMenuItem,
     } from '@/components/ui/sidebar';
     import { toUrl } from '@/lib/utils';
-    import { dashboard } from '@/routes';
+    import { dashboard, search } from '@/routes';
     import { index as boardsIndex, show as showBoard } from '@/routes/boards';
     import { index as usersIndex } from '@/routes/users';
     import type { NavItem } from '@/types';
@@ -33,6 +34,11 @@
             title: 'Dashboard',
             href: dashboard(),
             icon: LayoutGrid,
+        },
+        {
+            title: 'Search',
+            href: search(),
+            icon: Search,
         },
         {
             title: 'Users',

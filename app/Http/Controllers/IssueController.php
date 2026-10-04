@@ -9,6 +9,7 @@ use App\Http\Requests\Issues\StoreIssueRequest;
 use App\Http\Requests\Issues\UpdateIssueRequest;
 use App\Http\Resources\BoardResource;
 use App\Http\Resources\IssueResource;
+use App\Http\Resources\LabelResource;
 use App\Http\Resources\SprintResource;
 use App\Http\Resources\UserResource;
 use App\Models\Board;
@@ -35,7 +36,7 @@ class IssueController extends Controller
     {
         Gate::authorize('view', $issue);
 
-        $issue->load(['assignee', 'parent']);
+        $issue->load(['assignee', 'parent', 'labels']);
         $board = ($issue->board ?? abort(404))->load('statuses');
 
         return Inertia::render('issues/Show', [
@@ -43,6 +44,7 @@ class IssueController extends Controller
             'parent' => $issue->parent ? new IssueResource($issue->parent) : null,
             'board' => new BoardResource($board),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
+            'labels' => LabelResource::collection($board->labels()->get()),
             'openSprints' => SprintResource::collection(
                 $board->sprints()
                     ->where(fn ($sprints) => $sprints->whereNull('closed_at')->orWhere('id', $issue->sprint_id))
@@ -58,7 +60,7 @@ class IssueController extends Controller
     {
         $updateIssue->handle($issue, $request->validated());
 
-        if ($request->hasAny(['name', 'description', 'assigned_id'])) {
+        if ($request->hasAny(['name', 'description', 'assigned_id', 'label_ids'])) {
             Inertia::flash('toast', ['type' => 'success', 'message' => __('Issue updated.')]);
         }
 

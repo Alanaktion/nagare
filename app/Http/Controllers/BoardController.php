@@ -11,6 +11,7 @@ use App\Events\BoardDeleted;
 use App\Http\Requests\Boards\StoreBoardRequest;
 use App\Http\Requests\Boards\UpdateBoardRequest;
 use App\Http\Resources\BoardResource;
+use App\Http\Resources\LabelResource;
 use App\Http\Resources\UserResource;
 use App\Models\Board;
 use App\Models\User;
@@ -85,6 +86,7 @@ class BoardController extends Controller
                 $board->load(['statuses' => fn ($statuses) => $statuses->withCount('issues')])->withRoleFor($user)
             ),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
+            'labels' => LabelResource::collection($board->labels()->withCount('issues')->get()),
             'candidates' => Inertia::optional(fn () => $user->can('manageMembers', $board)
                 ? UserResource::collection(
                     User::query()

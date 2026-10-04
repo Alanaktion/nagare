@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Link } from '@inertiajs/svelte';
+    import LabelBadge from '@/components/LabelBadge.svelte';
     import UserAvatar from '@/components/UserAvatar.svelte';
     import { cn } from '@/lib/utils';
     import { show } from '@/routes/issues';
@@ -17,10 +18,20 @@
     data-issue={issue.id}
     draggable={false}
 >
-    <span class={cn('min-w-0 break-words', issue.closed_at && 'line-through')}>
-        {issue.name}
-        {#if issue.closed_at}<span class="sr-only">(closed)</span>{/if}
-        {#if issue.assignee}<span class="sr-only">, assigned to {issue.assignee.name}</span>{/if}
+    <span class="min-w-0">
+        <span class={cn('block break-words', issue.closed_at && 'line-through')}>
+            {issue.name}
+            {#if issue.closed_at}<span class="sr-only">(closed)</span>{/if}
+            {#if issue.assignee}<span class="sr-only">, assigned to {issue.assignee.name}</span>{/if}
+        </span>
+        {#if issue.labels && issue.labels.length > 0}
+            <span class="mt-1.5 flex flex-wrap gap-1">
+                <span class="sr-only">Labels:</span>
+                {#each issue.labels as label (label.id)}
+                    <LabelBadge {label} />
+                {/each}
+            </span>
+        {/if}
     </span>
     {#if issue.assignee}
         <span aria-hidden="true" class="shrink-0">

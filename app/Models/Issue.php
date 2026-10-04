@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Concerns\SearchesText;
 use App\Enums\IssueRole;
 use Carbon\CarbonImmutable;
 use Database\Factories\IssueFactory;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -35,7 +37,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Issue extends Model
 {
     /** @use HasFactory<IssueFactory> */
-    use HasFactory, SoftDeletes;
+    use HasFactory, SearchesText, SoftDeletes;
 
     /**
      * Keep the closed timestamp in step with the issue's status, and detach
@@ -104,6 +106,29 @@ class Issue extends Model
                         });
                 });
         });
+    }
+
+    /**
+     * Issues whose name, description or a label name contains the search text.
+     *
+     * @param  Builder<Issue>  $query
+     */
+    #[Scope]
+    protected function matching(Builder $query, string $search): void
+    {
+        $query->where(function (Builder $issues) use ($search): void {
+            self::whereColumnContains($issues, 'name', $search);
+            self::whereColumnContains($issues, 'description', $search, 'or');
+            $issues->orWhereHas('labels', fn (Builder $labels) => self::whereColumnContains($labels, 'name', $search));
+        });
+    }
+
+    /**
+     * @return BelongsToMany<Label, $this>
+     */
+    public function labels(): BelongsToMany
+    {
+        return $this->belongsToMany(Label::class);
     }
 
     /**

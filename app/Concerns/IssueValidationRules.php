@@ -13,7 +13,7 @@ trait IssueValidationRules
     /**
      * Get the validation rules shared by issue creation and updates.
      *
-     * Statuses, assignees and parent stories are restricted to the board.
+     * Statuses, assignees, labels and parent stories are restricted to the board.
      * Only tasks on boards with stories may have a parent story. Issues go
      * into open sprints, though an existing issue may stay in its current
      * sprint after it closes. With `$partial`, name and status may be
@@ -35,6 +35,8 @@ trait IssueValidationRules
                     ->where('board_id', $board->id)
                     ->where(fn (Builder $sprints) => $sprints->whereNull('closed_at')->orWhere('id', $currentSprintId))]
                 : ['prohibited'],
+            'label_ids' => ['sometimes', 'array', 'max:20'],
+            'label_ids.*' => ['integer', 'distinct', Rule::exists('labels', 'id')->where('board_id', $board->id)],
             'assigned_id' => ['nullable', 'integer', Rule::exists('board_user', 'user_id')->where('board_id', $board->id)],
             'parent_id' => $canHaveParent
                 ? ['nullable', 'integer', Rule::exists('issues', 'id')

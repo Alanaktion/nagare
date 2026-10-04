@@ -6,7 +6,9 @@ use App\Http\Controllers\BoardMemberController;
 use App\Http\Controllers\ClosedSprintController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IssueController;
+use App\Http\Controllers\LabelController;
 use App\Http\Controllers\RestoredBoardController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SprintController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +22,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('boards.issues', IssueController::class)
         ->shallow()
         ->only(['store', 'show', 'update', 'destroy']);
+    Route::resource('boards.labels', LabelController::class)
+        ->shallow()
+        ->only(['store', 'update', 'destroy']);
+    Route::get('search', SearchController::class)->middleware('throttle:60,1')->name('search');
     Route::get('boards/{board}/backlog', [BacklogController::class, 'show'])->name('boards.backlog');
     Route::post('boards/{board}/sprints', [SprintController::class, 'store'])->name('boards.sprints.store');
     Route::get('boards/{board}/sprints/{sprint:slug}', [SprintController::class, 'show'])
