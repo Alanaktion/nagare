@@ -10,6 +10,7 @@
     import { Link, router } from '@inertiajs/svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import AppHead from '@/components/AppHead.svelte';
+    import EmptyState from '@/components/EmptyState.svelte';
     import Heading from '@/components/Heading.svelte';
     import { Badge } from '@/components/ui/badge';
     import { Button } from '@/components/ui/button';
@@ -44,7 +45,13 @@
     </div>
 
     {#if boards.data.length === 0}
-        <p class="text-sm text-muted-foreground">You aren't a member of any boards yet. Create one to get started.</p>
+        <EmptyState message="You aren't a member of any boards yet. Create one to get started." class="p-8">
+            <Button asChild>
+                {#snippet children(props)}
+                    <Link {...props} href={create()}><Plus class="size-4" /> Create a board</Link>
+                {/snippet}
+            </Button>
+        </EmptyState>
     {:else}
         <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {#each boards.data as board (board.id)}

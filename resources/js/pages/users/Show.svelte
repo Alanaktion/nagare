@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Link, setLayoutProps } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
+    import EmptyState from '@/components/EmptyState.svelte';
     import Heading from '@/components/Heading.svelte';
     import { Badge } from '@/components/ui/badge';
     import { Skeleton } from '@/components/ui/skeleton';
@@ -47,7 +48,7 @@
     <section class="space-y-3">
         <Heading variant="small" title="Boards" description="Boards you share with this user." />
         {#if boards.data.length === 0}
-            <p class="text-sm text-muted-foreground">No shared boards.</p>
+            <EmptyState message="No boards in common." />
         {:else}
             <ul class="divide-y rounded-lg border">
                 {#each boards.data as board (board.id)}
@@ -71,7 +72,7 @@
                 <Skeleton class="h-12 w-full" />
             </div>
         {:else if assignedIssues.data.length === 0}
-            <p class="text-sm text-muted-foreground">Nothing assigned.</p>
+            <EmptyState message="Nothing assigned on your shared boards." />
         {:else}
             <ul class="divide-y rounded-lg border">
                 {#each assignedIssues.data as issue (issue.id)}

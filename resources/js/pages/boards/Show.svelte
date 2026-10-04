@@ -6,6 +6,7 @@
     import { dndzone, setKeyboardDragTrigger, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
     import { update } from '@/actions/App/Http/Controllers/IssueController';
     import AppHead from '@/components/AppHead.svelte';
+    import EmptyState from '@/components/EmptyState.svelte';
     import IssueCard from '@/components/board/IssueCard.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
     import SprintNav from '@/components/board/SprintNav.svelte';
@@ -25,6 +26,9 @@
         openSprints,
         previousSprint,
         nextSprint,
+        olderClosedCount,
+        withOlderClosed,
+        closedIssueDays,
     }: {
         board: { data: Board };
         issues: { data: Issue[] };
@@ -34,6 +38,9 @@
         openSprints: { data: Sprint[] };
         previousSprint: { data: Sprint } | null;
         nextSprint: { data: Sprint } | null;
+        olderClosedCount: number;
+        withOlderClosed: boolean;
+        closedIssueDays: number;
     } = $props();
 
     const current = $derived(board.data);
@@ -44,8 +51,24 @@
         `grid-template-columns: repeat(${statuses.length + (current.has_stories ? 1 : 0)}, minmax(16rem, 1fr))`,
     );
 
-    const tasksIn = (list: Issue[], statusId: number) =>
-        list.filter((issue) => issue.status_id === statusId);
+    // Counted once per change rather than per cell, so large boards stay cheap to render.
+    const countBy = (list: Issue[], key: (issue: Issue) => number | null) => {
+        const counts = new Map<number | null, number>();
+        for (const issue of list) {
+            counts.set(key(issue), (counts.get(key(issue)) ?? 0) + 1);
+        }
+        return counts;
+    };
+    const tasksPerStatus = $derived(countBy(tasks, (task) => task.status_id));
+    const tasksPerStory = $derived(countBy(tasks, (task) => task.parent_id));
+    const storyNames = $derived(new Map(stories.map((story) => [story.id, story.name])));
+    const statusNames = $derived(new Map(statuses.map((status) => [status.id, status.name])));
+
+    // Kanban boards and backlogs hide long-closed issues; this toggles them.
+    const closedToggleUrl = $derived.by(() => {
+        const options = withOlderClosed ? {} : { query: { closed: 'all' } };
+        return current.has_sprints ? backlog(current.id, options) : show(current.id, options);
+    });
 
     // Space starts a keyboard drag, leaving Enter free to open the focused card.
     setKeyboardDragTrigger('space');
@@ -152,7 +175,7 @@
     // doesn't have. Changes that could affect that are refetched instead.
     const derivesStoryView = $derived(current.has_stories && current.has_sprints);
 
-    const refetchIssues = () => router.reload({ only: ['issues'] });
+    const refetchIssues = () => router.reload({ only: ['issues', 'olderClosedCount'] });
 
     const upsertIssue = (list: Issue[], issue: Issue, sorts?: Record<number, number> | null) => {
         const existing = list.find((candidate) => candidate.id === issue.id);
@@ -243,9 +266,12 @@
 
 {#snippet dropZone(statusId: number, parentId: number | null, class_: string)}
     {@const key = zoneKey(statusId, parentId)}
+    {@const statusName = statusNames.get(statusId)}
+    {@const storyName = current.has_stories ? ((parentId && storyNames.get(parentId)) ?? 'No story') : null}
     <div
         class={['flex flex-col gap-2 rounded-md p-2', class_]}
         data-status={statusId}
+        aria-label={storyName ? `${storyName}, ${statusName}` : statusName}
         use:dndzone={{
             items: zones[key] ?? [],
             type: 'task',
@@ -266,7 +292,7 @@
 {#snippet storyTaskCount(story: Issue)}
     {@const total = story.children_count ?? 0}
     {#if current.has_sprints && total > 0}
-        {@const here = tasks.filter((task) => task.parent_id === story.id).length}
+        {@const here = tasksPerStory.get(story.id) ?? 0}
         <p class="px-1 pt-1 text-xs text-muted-foreground">
             {#if here === total}
                 {total} {total === 1 ? 'task' : 'tasks'}
@@ -321,7 +347,36 @@
         </div>
     </div>
 
-    {#if current.has_stories}
+    {#if !sprint && (olderClosedCount > 0 || withOlderClosed)}
+        <p class="text-sm text-muted-foreground">
+            {#if withOlderClosed}
+                Showing all closed issues.
+                <Link href={closedToggleUrl} class="text-foreground underline underline-offset-4" preserveScroll>
+                    Hide issues closed over {closedIssueDays} days ago
+                </Link>
+            {:else}
+                {olderClosedCount} {olderClosedCount === 1 ? 'issue' : 'issues'} closed over {closedIssueDays} days ago
+                {olderClosedCount === 1 ? 'is' : 'are'} hidden.
+                <Link href={closedToggleUrl} class="text-foreground underline underline-offset-4" preserveScroll>
+                    Show {olderClosedCount === 1 ? 'it' : 'them'}
+                </Link>
+            {/if}
+        </p>
+    {/if}
+
+    {#if current.has_stories && issues.data.length === 0}
+        <EmptyState
+            message={current.has_sprints
+                ? `Nothing in ${sprint ? 'this sprint' : 'the backlog'} yet. Start with a story, or add a task on its own.`
+                : 'No issues yet. Start with a story, or add a task on its own.'}
+            class="p-8"
+        >
+            <div class="flex gap-2">
+                <Button size="sm" onclick={() => openCreate('story')}><Plus class="size-4" /> New story</Button>
+                <Button size="sm" variant="outline" onclick={() => openCreate('task')}><Plus class="size-4" /> New task</Button>
+            </div>
+        </EmptyState>
+    {:else if current.has_stories}
         <div class="overflow-x-auto">
             <div class="grid min-w-max gap-px overflow-hidden rounded-lg border bg-border" style={gridStyle}>
                 <h2 class="bg-muted px-3 py-2 text-sm font-medium">Story</h2>
@@ -329,7 +384,7 @@
                     <h2 class="bg-muted px-3 py-2 text-sm font-medium">
                         {status.name}
                         <span class="ml-1 text-xs font-normal text-muted-foreground">
-                            {tasksIn(tasks, status.id).length}
+                            {tasksPerStatus.get(status.id) ?? 0}<span class="sr-only"> tasks</span>
                         </span>
                     </h2>
                 {/each}
@@ -364,12 +419,15 @@
         <div class="flex min-h-96 flex-1 gap-3 overflow-x-auto">
             {#each statuses as status (status.id)}
                 {@const isEmpty = (zones[zoneKey(status.id, null)] ?? []).length === 0}
-                <section class="flex min-w-64 flex-1 flex-col rounded-lg border bg-muted/40">
+                <section
+                    class="flex min-w-64 flex-1 flex-col rounded-lg border bg-muted/40"
+                    aria-labelledby="status-{status.id}-heading"
+                >
                     <header class="flex items-center justify-between gap-2 px-3 py-2">
-                        <h2 class="text-sm font-medium">
+                        <h2 id="status-{status.id}-heading" class="text-sm font-medium">
                             {status.name}
                             <span class="ml-1 text-xs font-normal text-muted-foreground">
-                                {(zones[zoneKey(status.id, null)] ?? []).length}
+                                {(zones[zoneKey(status.id, null)] ?? []).length}<span class="sr-only"> issues</span>
                             </span>
                         </h2>
                         <Button

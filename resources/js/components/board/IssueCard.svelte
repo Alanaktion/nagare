@@ -17,8 +17,14 @@
     data-issue={issue.id}
     draggable={false}
 >
-    <span class={cn('min-w-0 break-words', issue.closed_at && 'line-through')}>{issue.name}</span>
+    <span class={cn('min-w-0 break-words', issue.closed_at && 'line-through')}>
+        {issue.name}
+        {#if issue.closed_at}<span class="sr-only">(closed)</span>{/if}
+        {#if issue.assignee}<span class="sr-only">, assigned to {issue.assignee.name}</span>{/if}
+    </span>
     {#if issue.assignee}
-        <UserAvatar user={issue.assignee} class="shrink-0" />
+        <span aria-hidden="true" class="shrink-0">
+            <UserAvatar user={issue.assignee} />
+        </span>
     {/if}
 </Link>

@@ -15,6 +15,7 @@
     import { Link, page } from '@inertiajs/svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import AppHead from '@/components/AppHead.svelte';
+    import EmptyState from '@/components/EmptyState.svelte';
     import Heading from '@/components/Heading.svelte';
     import { Badge } from '@/components/ui/badge';
     import { Button } from '@/components/ui/button';
@@ -65,9 +66,7 @@
                     <Skeleton class="h-14 w-full" />
                 </div>
             {:else if assignedIssues.data.length === 0}
-                <p class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                    Nothing assigned to you right now.
-                </p>
+                <EmptyState message="Nothing assigned to you right now." />
             {:else}
                 <ul class="divide-y rounded-lg border">
                     {#each assignedIssues.data as issue (issue.id)}
@@ -132,14 +131,13 @@
         <h2 id="boards-heading" class="text-sm font-medium text-muted-foreground">Recent boards</h2>
 
         {#if boards.data.length === 0}
-            <div class="flex flex-col items-center gap-3 rounded-lg border border-dashed p-8 text-center">
-                <p class="text-sm text-muted-foreground">You aren't on any boards yet.</p>
+            <EmptyState message="You aren't on any boards yet." class="p-8">
                 <Button asChild>
                     {#snippet children(props)}
                         <Link {...props} href={createBoard()}><Plus class="size-4" /> Create a board</Link>
                     {/snippet}
                 </Button>
-            </div>
+            </EmptyState>
         {:else}
             <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {#each boards.data as board (board.id)}

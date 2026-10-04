@@ -2,28 +2,56 @@
 
 namespace App\Actions\Boards;
 
+use App\Enums\IssueRole;
 use App\Http\Resources\BoardResource;
 use App\Http\Resources\IssueResource;
 use App\Http\Resources\SprintResource;
 use App\Http\Resources\UserResource;
 use App\Models\Board;
 use App\Models\Sprint;
+use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ShowBoard
 {
     /**
+     * Days a closed issue stays on views that aren't bounded by a sprint.
+     */
+    public const int CLOSED_ISSUE_DAYS = 14;
+
+    /**
      * Render a board's issues. On boards with sprints this is one sprint,
      * or the backlog (issues without a sprint) when `$sprint` is null. Stories
      * are included wherever they have tasks, see `Issue::inSprintView()`.
+     *
+     * Kanban boards and backlogs grow forever, so they leave out tasks closed
+     * more than `CLOSED_ISSUE_DAYS` ago unless `$withOlderClosed` is set.
      */
-    public function handle(Board $board, ?Sprint $sprint = null): Response
+    public function handle(Board $board, ?Sprint $sprint = null, bool $withOlderClosed = false): Response
     {
         $issues = $board->issues()->with('assignee')->withCount('children')->orderBy('sort');
 
         if ($board->has_sprints) {
             $issues->inSprintView($sprint?->id);
+        }
+
+        $olderClosedCount = 0;
+
+        if ($sprint === null) {
+            $cutoff = now()->subDays(self::CLOSED_ISSUE_DAYS);
+
+            $olderClosedCount = (clone $issues)
+                ->where('role', '!=', IssueRole::Story->value)
+                ->where('closed_at', '<', $cutoff)
+                ->count();
+
+            if (! $withOlderClosed) {
+                $issues->where(fn (Builder $query) => $query
+                    ->where('role', IssueRole::Story->value)
+                    ->orWhereNull('closed_at')
+                    ->orWhere('closed_at', '>=', $cutoff));
+            }
         }
 
         return Inertia::render('boards/Show', [
@@ -39,6 +67,9 @@ class ShowBoard
             ),
             'previousSprint' => $sprint ? $this->neighbour($board, $sprint, '<') : null,
             'nextSprint' => $sprint ? $this->neighbour($board, $sprint, '>') : null,
+            'olderClosedCount' => $olderClosedCount,
+            'withOlderClosed' => $withOlderClosed,
+            'closedIssueDays' => self::CLOSED_ISSUE_DAYS,
         ]);
     }
 

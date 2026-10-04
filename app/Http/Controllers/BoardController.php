@@ -60,14 +60,14 @@ class BoardController extends Controller
 
     /**
      * Show a board. Boards with sprints open on the current sprint, or on
-     * the backlog when there isn't one.
+     * the backlog when there isn't one. `?closed=all` includes older closed issues.
      */
-    public function show(Board $board, EnsureCurrentSprint $ensureCurrentSprint, ShowBoard $showBoard): Response|RedirectResponse
+    public function show(Request $request, Board $board, EnsureCurrentSprint $ensureCurrentSprint, ShowBoard $showBoard): Response|RedirectResponse
     {
         Gate::authorize('view', $board);
 
         if (! $board->has_sprints) {
-            return $showBoard->handle($board);
+            return $showBoard->handle($board, withOlderClosed: $request->query('closed') === 'all');
         }
 
         $current = $ensureCurrentSprint->handle($board);

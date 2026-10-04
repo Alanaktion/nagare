@@ -9,6 +9,7 @@
 <script lang="ts">
     import { Link, router } from '@inertiajs/svelte';
     import AppHead from '@/components/AppHead.svelte';
+    import EmptyState from '@/components/EmptyState.svelte';
     import Heading from '@/components/Heading.svelte';
     import { Button } from '@/components/ui/button';
     import { Card } from '@/components/ui/card';
@@ -57,7 +58,7 @@
     />
 
     {#if users.data.length === 0}
-        <p class="text-sm text-muted-foreground">No users match your search.</p>
+        <EmptyState message={search.trim() ? `No users match "${search.trim()}".` : 'No users yet.'} />
     {:else}
         <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {#each users.data as user (user.id)}

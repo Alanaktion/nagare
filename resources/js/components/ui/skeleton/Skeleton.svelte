@@ -8,4 +8,4 @@
     } = $props();
 </script>
 
-<div data-slot="skeleton" class={cn('animate-pulse rounded-md bg-primary/10', className)}></div>
+<div data-slot="skeleton" class={cn('rounded-md bg-foreground/10 motion-safe:animate-pulse', className)}></div>
