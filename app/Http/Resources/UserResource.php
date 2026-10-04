@@ -14,7 +14,7 @@ class UserResource extends JsonResource
     /**
      * Transform the resource into an array.
      *
-     * @return array{id: int, name: string, email: string, avatar_url: string|null}
+     * @return array<string, mixed>
      */
     public function toArray(Request $request): array
     {
@@ -23,6 +23,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'avatar_url' => null,
+            'role' => $this->whenPivotLoaded('board_user', fn () => $this->resource->getRelation('pivot')->role),
         ];
     }
 }

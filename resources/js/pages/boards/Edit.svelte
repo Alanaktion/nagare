@@ -3,6 +3,7 @@
     import { destroy, update } from '@/actions/App/Http/Controllers/BoardController';
     import AppHead from '@/components/AppHead.svelte';
     import BoardForm from '@/components/board/BoardForm.svelte';
+    import BoardMembers from '@/components/board/BoardMembers.svelte';
     import Heading from '@/components/Heading.svelte';
     import { Button } from '@/components/ui/button';
     import {
@@ -15,9 +16,17 @@
         DialogTrigger,
     } from '@/components/ui/dialog';
     import { edit, index, show } from '@/routes/boards';
-    import type { Board } from '@/types';
+    import type { Board, Member } from '@/types';
 
-    let { board }: { board: { data: Board } } = $props();
+    let {
+        board,
+        members,
+        candidates,
+    }: {
+        board: { data: Board };
+        members: { data: Member[] };
+        candidates?: { data: Member[] };
+    } = $props();
 
     const current = $derived(board.data);
 
@@ -39,6 +48,8 @@
         <Heading title="Board settings" description="Rename the board, change its workflow, or edit its statuses." />
         <BoardForm action={update.form(current.id)} board={current} submitLabel="Save changes" />
     </div>
+
+    <BoardMembers board={current} members={members.data} candidates={candidates?.data} />
 
     {#if current.role === 'admin'}
         <section class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">

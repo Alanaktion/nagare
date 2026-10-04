@@ -29,6 +29,8 @@ class IssueResource extends JsonResource
             'children_count' => $this->whenCounted('children'),
             'author_id' => $this->author_id,
             'assigned_id' => $this->assigned_id,
+            'status' => new StatusResource($this->whenLoaded('status')),
+            'board' => new BoardResource($this->whenLoaded('board')),
             'assignee' => new UserResource($this->whenLoaded('assignee')),
             'closed_at' => $this->closed_at?->toIso8601String(),
         ];

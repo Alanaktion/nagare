@@ -27,7 +27,7 @@ class ShowBoard
         }
 
         return Inertia::render('boards/Show', [
-            'board' => new BoardResource($board->load('statuses')),
+            'board' => new BoardResource($board->load('statuses')->withRoleFor(auth()->user())),
             'issues' => IssueResource::collection($issues->get()),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
             'sprint' => $sprint ? new SprintResource($sprint) : null,

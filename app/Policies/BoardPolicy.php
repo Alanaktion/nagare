@@ -63,4 +63,20 @@ class BoardPolicy
     {
         return $this->delete($user, $board);
     }
+
+    /**
+     * Only board admins can add members or change their roles.
+     */
+    public function manageMembers(User $user, Board $board): bool
+    {
+        return $board->roleFor($user) === BoardRole::Admin;
+    }
+
+    /**
+     * Admins can remove any member, and members can leave on their own.
+     */
+    public function removeMember(User $user, Board $board, User $member): bool
+    {
+        return $this->manageMembers($user, $board) || ($user->is($member) && $this->view($user, $board));
+    }
 }

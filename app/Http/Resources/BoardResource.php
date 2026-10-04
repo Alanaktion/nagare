@@ -22,7 +22,11 @@ class BoardResource extends JsonResource
             'has_stories' => $this->has_stories,
             'has_sprints' => $this->has_sprints,
             'sprint_cycle' => $this->sprint_cycle?->value,
-            'role' => $this->whenPivotLoaded('board_user', fn () => $this->resource->getRelation('pivot')->role),
+            'role' => $this->whenPivotLoaded(
+                'board_user',
+                fn () => $this->resource->getRelation('pivot')->role,
+                fn () => $this->resource->getAttribute('current_role'),
+            ),
             'statuses' => StatusResource::collection($this->whenLoaded('statuses')),
         ];
     }

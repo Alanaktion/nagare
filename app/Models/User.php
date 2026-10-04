@@ -6,6 +6,8 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -55,5 +57,24 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function boards(): BelongsToMany
     {
         return $this->belongsToMany(Board::class)->withPivot('role')->withTimestamps();
+    }
+
+    /**
+     * Users whose name or email contains the search text. An empty search matches everyone.
+     *
+     * @param  Builder<User>  $query
+     */
+    #[Scope]
+    protected function matching(Builder $query, string $search): void
+    {
+        $search = trim($search);
+
+        if ($search === '') {
+            return;
+        }
+
+        $term = '%'.addcslashes($search, '%_\\').'%';
+
+        $query->where(fn (Builder $users) => $users->where('name', 'like', $term)->orWhere('email', 'like', $term));
     }
 }

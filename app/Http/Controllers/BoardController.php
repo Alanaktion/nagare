@@ -11,7 +11,9 @@ use App\Events\BoardDeleted;
 use App\Http\Requests\Boards\StoreBoardRequest;
 use App\Http\Requests\Boards\UpdateBoardRequest;
 use App\Http\Resources\BoardResource;
+use App\Http\Resources\UserResource;
 use App\Models\Board;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -75,12 +77,25 @@ class BoardController extends Controller
             : to_route('boards.backlog', $board);
     }
 
-    public function edit(Board $board): Response
+    public function edit(Request $request, Board $board): Response
     {
         Gate::authorize('update', $board);
 
         return Inertia::render('boards/Edit', [
-            'board' => new BoardResource($board->load(['statuses' => fn ($statuses) => $statuses->withCount('issues')])),
+            'board' => new BoardResource(
+                $board->load(['statuses' => fn ($statuses) => $statuses->withCount('issues')])->withRoleFor($request->user())
+            ),
+            'members' => UserResource::collection($board->users()->orderBy('name')->get()),
+            'candidates' => Inertia::optional(fn () => $request->user()->can('manageMembers', $board)
+                ? UserResource::collection(
+                    User::query()
+                        ->whereDoesntHave('boards', fn ($boards) => $boards->whereKey($board->id))
+                        ->matching($request->string('search')->toString())
+                        ->orderBy('name')
+                        ->limit(10)
+                        ->get()
+                )
+                : []),
         ]);
     }
 

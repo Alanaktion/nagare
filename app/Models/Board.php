@@ -123,4 +123,27 @@ class Board extends Model
 
         return is_string($role) ? BoardRole::from($role) : null;
     }
+
+    /**
+     * Expose the user's role on this board as `current_role`, for resources
+     * that render a board outside of a membership list.
+     */
+    public function withRoleFor(User $user): static
+    {
+        return $this->setAttribute('current_role', $this->roleFor($user)?->value);
+    }
+
+    /**
+     * Whether the user is the only admin on this board. The admin rows are
+     * locked so two admins can't remove each other at the same time.
+     */
+    public function isLastAdmin(User $user): bool
+    {
+        $adminIds = $this->users()
+            ->wherePivot('role', BoardRole::Admin->value)
+            ->lockForUpdate()
+            ->pluck('users.id');
+
+        return $adminIds->count() === 1 && $adminIds->first() === $user->id;
+    }
 }

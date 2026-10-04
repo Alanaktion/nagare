@@ -2,6 +2,7 @@
     import { Link, page } from '@inertiajs/svelte';
     import Kanban from '@lucide/svelte/icons/kanban';
     import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+    import Users from '@lucide/svelte/icons/users';
     import type { Snippet } from 'svelte';
     import AppLogo from '@/components/AppLogo.svelte';
     import NavMain from '@/components/NavMain.svelte';
@@ -18,6 +19,7 @@
     import { toUrl } from '@/lib/utils';
     import { dashboard } from '@/routes';
     import { index as boardsIndex, show as showBoard } from '@/routes/boards';
+    import { index as usersIndex } from '@/routes/users';
     import type { NavItem } from '@/types';
 
     let {
@@ -31,6 +33,11 @@
             title: 'Dashboard',
             href: dashboard(),
             icon: LayoutGrid,
+        },
+        {
+            title: 'Users',
+            href: usersIndex(),
+            icon: Users,
         },
     ];
 

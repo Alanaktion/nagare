@@ -1,3 +1,5 @@
+import type { Board, BoardRole, Status } from './board';
+
 export type IssueRole = 'epic' | 'story' | 'task';
 
 export type Member = {
@@ -5,6 +7,8 @@ export type Member = {
     name: string;
     email: string;
     avatar_url: string | null;
+    /** The member's role on the board, when loaded through board membership. */
+    role?: BoardRole;
 };
 
 export type Issue = {
@@ -22,5 +26,8 @@ export type Issue = {
     author_id: number | null;
     assigned_id: number | null;
     assignee?: Member | null;
+    /** Present when issues are listed outside their board, such as on a profile. */
+    board?: Pick<Board, 'id' | 'name'>;
+    status?: Status;
     closed_at: string | null;
 };
