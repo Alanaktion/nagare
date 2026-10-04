@@ -114,4 +114,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Verification
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, new accounts must verify their email address before using
+    | the app. Disable this if you don't have outgoing email configured; all
+    | users are then treated as verified.
+    |
+    */
+
+    'verify_email' => env('AUTH_VERIFY_EMAIL', true),
+
 ];

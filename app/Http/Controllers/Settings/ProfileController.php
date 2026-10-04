@@ -23,7 +23,7 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('settings/Profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => config('auth.verify_email') && $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
         ]);
     }
@@ -35,7 +35,7 @@ class ProfileController extends Controller
     {
         $user->fill($request->validated());
 
-        if ($user->isDirty('email')) {
+        if (config('auth.verify_email') && $user->isDirty('email')) {
             $user->email_verified_at = null;
         }
 

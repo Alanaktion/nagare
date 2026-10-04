@@ -6,6 +6,7 @@ use App\Concerns\HasProfilePhoto;
 use App\Concerns\SearchesText;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -59,6 +60,25 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'email_notifications' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Determine if the user has verified their email address. Always true when
+     * email verification is disabled.
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return ! config('auth.verify_email') || ! is_null($this->email_verified_at);
+    }
+
+    /**
+     * Send the email verification notification, unless verification is disabled.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        if (config('auth.verify_email')) {
+            $this->notify(new VerifyEmail);
+        }
     }
 
     /**
