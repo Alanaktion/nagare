@@ -3,11 +3,14 @@
 namespace Database\Seeders;
 
 use App\Enums\BoardRole;
+use App\Enums\IssueActivityType;
 use App\Enums\IssueRole;
 use App\Enums\LabelColor;
 use App\Enums\SprintCycle;
 use App\Models\Board;
+use App\Models\Comment;
 use App\Models\Issue;
+use App\Models\IssueActivity;
 use App\Models\Label;
 use App\Models\Sprint;
 use App\Models\Status;
@@ -124,7 +127,12 @@ class DemoSeeder extends Seeder
 
         $this->issue($board, $todo, 'Offline mode', role: IssueRole::Story);
 
-        $this->issue($board, $doing, 'Fix crash on Android 12 resume', sprint: $current, labels: ['Bug']);
+        $crash = $this->issue($board, $doing, 'Fix crash on Android 12 resume', sprint: $current, labels: ['Bug']);
+        $this->activity($crash, $this->teammate(1), IssueActivityType::Created, ['name' => $crash->name], 60 * 30);
+        $this->activity($crash, $this->teammate(1), IssueActivityType::Moved, ['from' => 'To Do', 'to' => 'In Progress'], 60 * 20);
+        $this->comment($crash, $this->teammate(2), "I can reproduce this on a Pixel 6. It only happens when the app is resumed from the **recent apps** screen.\n\nStack trace in the crash log points at `ResumeCoordinator`.", 60 * 18);
+        $this->comment($crash, $this->teammate(1), "Thanks! I'll take a look this afternoon.\n\n- [ ] reproduce\n- [ ] fix\n- [ ] add a regression test", 60 * 17);
+        $this->activity($crash, $this->teammate(0), IssueActivityType::Assigned, ['from' => null, 'to' => $this->teammate(0)->name], 60 * 2);
         $this->issue($board, $todo, 'Update app store screenshots', sprint: $next, labels: ['Chore']);
         $this->issue($board, $todo, 'Investigate slow cold start');
     }
@@ -219,6 +227,39 @@ class DemoSeeder extends Seeder
             'start_date' => $start,
             'end_date' => $end,
             'closed_at' => $closed ? $end->endOfDay() : null,
+        ]);
+    }
+
+    private function teammate(int $position): User
+    {
+        return $this->team->get($position) ?? throw new \OutOfRangeException("No teammate at position {$position}.");
+    }
+
+    /**
+     * Add a comment to an issue's timeline.
+     */
+    private function comment(Issue $issue, User $author, string $body, int $minutesAgo): void
+    {
+        Comment::factory()->for($issue)->create([
+            'user_id' => $author->id,
+            'body' => $body,
+            'created_at' => now()->subMinutes($minutesAgo),
+            'updated_at' => now()->subMinutes($minutesAgo),
+        ]);
+    }
+
+    /**
+     * Add a recorded change to an issue's timeline.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function activity(Issue $issue, User $actor, IssueActivityType $type, array $data, int $minutesAgo): void
+    {
+        IssueActivity::factory()->for($issue)->create([
+            'user_id' => $actor->id,
+            'type' => $type,
+            'data' => $data,
+            'created_at' => now()->subMinutes($minutesAgo),
         ]);
     }
 

@@ -11,6 +11,8 @@ use Illuminate\Support\Arr;
 
 class CreateIssue
 {
+    public function __construct(private RecordIssueActivity $recordActivity) {}
+
     /**
      * Create an issue at the bottom of its status column.
      *
@@ -34,6 +36,8 @@ class CreateIssue
         $issue->save();
         $issue->labels()->sync($labelIds);
         Issue::reindex($labelIds === [] ? [] : [$issue->id]);
+
+        $this->recordActivity->forCreate($issue, $author);
 
         IssueCreated::dispatch($issue);
 

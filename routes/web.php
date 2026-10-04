@@ -4,6 +4,7 @@ use App\Http\Controllers\BacklogController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\BoardMemberController;
 use App\Http\Controllers\ClosedSprintController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\LabelController;
@@ -22,6 +23,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('boards.issues', IssueController::class)
         ->shallow()
         ->only(['store', 'show', 'update', 'destroy']);
+    Route::resource('issues.comments', CommentController::class)
+        ->shallow()
+        ->only(['store', 'update', 'destroy'])
+        ->middleware('throttle:60,1');
     Route::resource('boards.labels', LabelController::class)
         ->shallow()
         ->only(['store', 'update', 'destroy']);

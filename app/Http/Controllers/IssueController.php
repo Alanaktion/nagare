@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Issues\BuildIssueTimeline;
 use App\Actions\Issues\CreateIssue;
 use App\Actions\Issues\DeleteIssue;
 use App\Actions\Issues\UpdateIssue;
@@ -32,7 +33,7 @@ class IssueController extends Controller
         return back();
     }
 
-    public function show(Issue $issue): Response
+    public function show(#[CurrentUser] User $user, Issue $issue, BuildIssueTimeline $buildTimeline): Response
     {
         Gate::authorize('view', $issue);
 
@@ -45,6 +46,8 @@ class IssueController extends Controller
             'board' => new BoardResource($board),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
             'labels' => LabelResource::collection($board->labels()->get()),
+            'timeline' => Inertia::defer(fn () => $buildTimeline->handle($issue, $user)),
+            'timelineLimit' => BuildIssueTimeline::LIMIT,
             'openSprints' => SprintResource::collection(
                 $board->sprints()
                     ->where(fn ($sprints) => $sprints->whereNull('closed_at')->orWhere('id', $issue->sprint_id))
@@ -56,9 +59,9 @@ class IssueController extends Controller
         ]);
     }
 
-    public function update(UpdateIssueRequest $request, Issue $issue, UpdateIssue $updateIssue): RedirectResponse
+    public function update(UpdateIssueRequest $request, #[CurrentUser] User $user, Issue $issue, UpdateIssue $updateIssue): RedirectResponse
     {
-        $updateIssue->handle($issue, $request->validated());
+        $updateIssue->handle($issue, $request->validated(), $user);
 
         if ($request->hasAny(['name', 'description', 'assigned_id', 'label_ids'])) {
             Inertia::flash('toast', ['type' => 'success', 'message' => __('Issue updated.')]);

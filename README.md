@@ -7,6 +7,7 @@ Nagare (ながれ) is a project management app for teams: Kanban and Scrum board
 - **Boards**: pick any mix of stories and sprints, so a board can be plain Kanban, stories only, sprints only, or full Scrum. Custom statuses, with any of them closing an issue.
 - **Issues**: tasks and stories with assignees, descriptions and labels. Drag cards between columns and story lanes, with touch and keyboard support.
 - **Sprints**: weekly, monthly, quarterly or custom. Fixed-cycle sprints are created for you, and unfinished work carries over when a sprint ends.
+- **Comments and activity**: every issue has a timeline of comments (Markdown, editable) mixed with what changed and who changed it.
 - **Labels, filters and search**: colour-coded labels, a board filter bar, and search across all your boards with filters for board, label, open or closed, and assigned to you.
 - **Teams**: admins and members per board, a user directory, profiles with photos, and a dashboard of your boards, assigned issues and sprint progress.
 - **Accounts**: registration with email verification, two-factor authentication, passkeys, and light and dark themes.

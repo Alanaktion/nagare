@@ -179,6 +179,22 @@ class Issue extends Model
     }
 
     /**
+     * @return HasMany<Comment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /**
+     * @return HasMany<IssueActivity, $this>
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(IssueActivity::class);
+    }
+
+    /**
      * @return BelongsToMany<Label, $this>
      */
     public function labels(): BelongsToMany

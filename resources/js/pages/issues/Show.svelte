@@ -4,6 +4,7 @@
     import { destroy } from '@/actions/App/Http/Controllers/IssueController';
     import AppHead from '@/components/AppHead.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
+    import IssueTimeline from '@/components/issue/IssueTimeline.svelte';
     import LabelBadge from '@/components/LabelBadge.svelte';
     import UserAvatar from '@/components/UserAvatar.svelte';
     import { Badge } from '@/components/ui/badge';
@@ -21,7 +22,7 @@
     import { index, show as showBoard } from '@/routes/boards';
     import { show } from '@/routes/issues';
     import { sprintLabel } from '@/lib/sprints';
-    import type { Board, Issue, Label, Member, Sprint } from '@/types';
+    import type { Board, Issue, Label, Member, Sprint, TimelineEntry } from '@/types';
 
     let {
         issue,
@@ -29,6 +30,8 @@
         board,
         members,
         labels,
+        timeline,
+        timelineLimit,
         stories,
         openSprints,
     }: {
@@ -37,11 +40,23 @@
         board: { data: Board };
         members: { data: Member[] };
         labels: { data: Label[] };
+        timeline?: TimelineEntry[];
+        timelineLimit: number;
         stories: { data: Issue[] };
         openSprints: { data: Sprint[] };
     } = $props();
 
     const current = $derived(issue.data);
+
+    // The timeline loads after the page. Keep the last one while a visit loads it
+    // again, so the skeleton only shows the first time.
+    let loadedTimeline: TimelineEntry[] | undefined = $state();
+
+    $effect(() => {
+        if (timeline !== undefined) {
+            loadedTimeline = timeline;
+        }
+    });
     const sprint = $derived(openSprints.data.find((s) => s.id === current.sprint_id));
     const status = $derived(board.data.statuses?.find((s) => s.id === current.status_id));
 
@@ -64,6 +79,11 @@
             .listen('.issue.deleted', ({ id }: { id: number }) => {
                 if (id === current.id) {
                     router.visit(showBoard(board.data.id));
+                }
+            })
+            .listen('.issue.timeline.changed', ({ id }: { id: number }) => {
+                if (id === current.id) {
+                    router.reload({ only: ['timeline'] });
                 }
             })
             .listen('.board.updated', () => router.reload({ only: ['issue', 'board', 'members', 'labels', 'stories', 'openSprints'] }))
@@ -159,6 +179,8 @@
             <p class="text-sm text-muted-foreground">No description.</p>
         {/if}
     </section>
+
+    <IssueTimeline issueId={current.id} timeline={loadedTimeline} limit={timelineLimit} />
 </div>
 
 <IssueDialog
