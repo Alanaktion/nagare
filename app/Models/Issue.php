@@ -70,13 +70,20 @@ class Issue extends Model
     }
 
     /**
-     * Get the attributes that should be cast.
+     * Get the attributes that should be cast. Ids are cast so that values
+     * filled from a form, which arrive as strings, compare equal to stored ones.
      *
      * @return array<string, string>
      */
     protected function casts(): array
     {
         return [
+            'board_id' => 'integer',
+            'status_id' => 'integer',
+            'sprint_id' => 'integer',
+            'parent_id' => 'integer',
+            'author_id' => 'integer',
+            'assigned_id' => 'integer',
             'role' => IssueRole::class,
             'sort' => 'float',
             'closed_at' => 'datetime',

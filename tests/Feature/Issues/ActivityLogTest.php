@@ -98,6 +98,23 @@ test('changes that leave values as they were record nothing', function () {
     Event::assertNotDispatched(IssueTimelineChanged::class);
 });
 
+test('ids sent as strings, as the issue form sends them, are not mistaken for changes', function () {
+    $sprint = Sprint::factory()->for($this->board)->current()->create();
+    $issue = Issue::factory()->inStatus($this->todo)->create(['name' => 'Same', 'assigned_id' => $this->user->id, 'sprint_id' => $sprint->id]);
+    Event::fake([IssueTimelineChanged::class]);
+
+    $this->put(route('issues.update', $issue), [
+        'name' => 'Same',
+        'status_id' => (string) $this->todo->id,
+        'assigned_id' => (string) $this->user->id,
+        'sprint_id' => (string) $sprint->id,
+    ])->assertSessionHasNoErrors();
+
+    expect($issue->activities()->count())->toBe(0)
+        ->and($issue->refresh()->status_id)->toBe($this->todo->id);
+    Event::assertNotDispatched(IssueTimelineChanged::class);
+});
+
 test('several changes in one request are all recorded and announced once', function () {
     $issue = Issue::factory()->inStatus($this->todo)->create(['name' => 'Before']);
     Event::fake([IssueTimelineChanged::class]);

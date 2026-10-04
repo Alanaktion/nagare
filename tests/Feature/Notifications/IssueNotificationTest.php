@@ -91,6 +91,12 @@ describe('what notifies', function () {
             ->and(sentChanges($this->watcher, $this->issue)[0])->toMatchArray(['to' => 'Linus', 'to_you' => false]);
     });
 
+    test('an assignment from the issue form, which sends ids as strings, is still for the assignee', function () {
+        $this->put(route('issues.update', $this->issue), ['assigned_id' => (string) $this->watcher->id]);
+
+        expect(sentChanges($this->watcher, $this->issue))->toBe([['type' => 'assigned', 'from' => null, 'to' => 'Grace', 'to_id' => $this->watcher->id, 'to_you' => true]]);
+    });
+
     test('unassigning', function () {
         $this->issue->update(['assigned_id' => $this->watcher->id]);
 
