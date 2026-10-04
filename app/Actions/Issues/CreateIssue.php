@@ -2,6 +2,7 @@
 
 namespace App\Actions\Issues;
 
+use App\Actions\Notifications\NotifyIssueWatchers;
 use App\Events\IssueCreated;
 use App\Models\Board;
 use App\Models\Issue;
@@ -11,7 +12,11 @@ use Illuminate\Support\Arr;
 
 class CreateIssue
 {
-    public function __construct(private RecordIssueActivity $recordActivity) {}
+    public function __construct(
+        private RecordIssueActivity $recordActivity,
+        private WatchIssue $watchIssue,
+        private NotifyIssueWatchers $notifyWatchers,
+    ) {}
 
     /**
      * Create an issue at the bottom of its status column.
@@ -38,6 +43,8 @@ class CreateIssue
         Issue::reindex($labelIds === [] ? [] : [$issue->id]);
 
         $this->recordActivity->forCreate($issue, $author);
+        $this->watchIssue->handle($issue, $author);
+        $this->notifyWatchers->forCreate($issue, $author);
 
         IssueCreated::dispatch($issue);
 

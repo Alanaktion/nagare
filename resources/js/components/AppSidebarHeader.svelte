@@ -1,5 +1,6 @@
 <script lang="ts">
     import Breadcrumbs from '@/components/Breadcrumbs.svelte';
+    import NotificationBell from '@/components/NotificationBell.svelte';
     import { SidebarTrigger } from '@/components/ui/sidebar';
     import type { BreadcrumbItem } from '@/types';
 
@@ -19,4 +20,5 @@
             <Breadcrumbs {breadcrumbs} />
         {/if}
     </div>
+    <NotificationBell />
 </header>

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Issues;
 
+use App\Actions\Notifications\NotifyIssueWatchers;
 use App\Events\IssueUpdated;
 use App\Models\Issue;
 use App\Models\Label;
@@ -13,6 +14,7 @@ class UpdateIssue
     public function __construct(
         private RebalanceIssueSort $rebalanceSort,
         private RecordIssueActivity $recordActivity,
+        private NotifyIssueWatchers $notifyWatchers,
     ) {}
 
     /**
@@ -34,6 +36,7 @@ class UpdateIssue
             'sprint_id' => $issue->sprint_id,
             'closed' => $issue->closed_at !== null,
         ];
+        $descriptionBefore = (string) $issue->description;
         $labelIdsBefore = $labelIds === null ? null : $issue->labels()->pluck('labels.id')->all();
 
         $issue->fill($data);
@@ -49,7 +52,9 @@ class UpdateIssue
             Issue::reindex([$issue->id]);
         }
 
-        $this->recordActivity->forUpdate($issue, $before, $labelIdsBefore, $labelIds === null ? null : array_map(intval(...), $labelIds), $actor);
+        $entries = $this->recordActivity->forUpdate($issue, $before, $labelIdsBefore, $labelIds === null ? null : array_map(intval(...), $labelIds), $actor);
+
+        $this->notifyWatchers->forUpdate($issue, $entries, (string) $issue->description !== $descriptionBefore, $actor);
 
         $renumbered = $issue->wasChanged(['sort', 'status_id'])
             ? $this->rebalanceSort->handle($issue->board_id, $issue->status_id)

@@ -17,7 +17,7 @@ test('demo data covers every kind of board and opens for the demo user', functio
         ->toBe([[false, false], [false, true], [true, false], [true, true]]);
 
     $this->actingAs($user)->get(route('dashboard'))->assertOk();
-    expect(Comment::count())->toBeGreaterThan(0)->and(IssueActivity::count())->toBeGreaterThan(0);
+    expect(Comment::count())->toBeGreaterThan(0)->and(IssueActivity::count())->toBeGreaterThan(0)->and($user->unreadNotifications()->count())->toBeGreaterThan(0);
 
     foreach ($boards as $board) {
         $this->followingRedirects()->get(route('boards.show', $board))->assertOk();

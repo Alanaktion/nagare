@@ -29,8 +29,9 @@ class RecordIssueActivity
      * @param  array{name: string, status_id: int, assigned_id: int|null, sprint_id: int|null, closed: bool}  $before
      * @param  array<int, int>|null  $labelIdsBefore
      * @param  array<int, int>|null  $labelIdsAfter  Null when the update didn't touch labels.
+     * @return list<array{0: IssueActivityType, 1: array<string, mixed>}> What was recorded.
      */
-    public function forUpdate(Issue $issue, array $before, ?array $labelIdsBefore, ?array $labelIdsAfter, ?User $actor): void
+    public function forUpdate(Issue $issue, array $before, ?array $labelIdsBefore, ?array $labelIdsAfter, ?User $actor): array
     {
         $entries = [];
 
@@ -83,6 +84,8 @@ class RecordIssueActivity
         }
 
         $this->handle($issue, $actor, $entries);
+
+        return $entries;
     }
 
     /**

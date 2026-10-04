@@ -7,7 +7,9 @@ use App\Http\Controllers\ClosedSprintController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\IssueController;
+use App\Http\Controllers\IssueWatcherController;
 use App\Http\Controllers\LabelController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RestoredBoardController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SprintController;
@@ -23,6 +25,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('boards.issues', IssueController::class)
         ->shallow()
         ->only(['store', 'show', 'update', 'destroy']);
+    Route::post('issues/{issue}/watchers', [IssueWatcherController::class, 'store'])->name('issues.watchers.store');
+    Route::delete('issues/{issue}/watchers', [IssueWatcherController::class, 'destroy'])->name('issues.watchers.destroy');
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::put('notifications', [NotificationController::class, 'update'])->name('notifications.update');
     Route::resource('issues.comments', CommentController::class)
         ->shallow()
         ->only(['store', 'update', 'destroy'])

@@ -39,6 +39,10 @@ class IssueController extends Controller
 
         $issue->load(['assignee', 'parent', 'labels']);
         $board = ($issue->board ?? abort(404))->load('statuses');
+        $watchers = $issue->watchers()->orderBy('name')->get();
+
+        // Looking at an issue reads the notifications about it.
+        $user->unreadNotifications()->whereJsonContains('data->issue_id', $issue->id)->update(['read_at' => now()]);
 
         return Inertia::render('issues/Show', [
             'issue' => new IssueResource($issue),
@@ -46,6 +50,8 @@ class IssueController extends Controller
             'board' => new BoardResource($board),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
             'labels' => LabelResource::collection($board->labels()->get()),
+            'watchers' => UserResource::collection($watchers),
+            'isWatching' => $watchers->contains('id', $user->id),
             'timeline' => Inertia::defer(fn () => $buildTimeline->handle($issue, $user)),
             'timelineLimit' => BuildIssueTimeline::LIMIT,
             'openSprints' => SprintResource::collection(

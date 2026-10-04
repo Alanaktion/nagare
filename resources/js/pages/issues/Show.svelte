@@ -2,6 +2,7 @@
     import { Form, Link, router, setLayoutProps } from '@inertiajs/svelte';
     import { onMount } from 'svelte';
     import { destroy } from '@/actions/App/Http/Controllers/IssueController';
+    import { destroy as unwatch, store as watch } from '@/actions/App/Http/Controllers/IssueWatcherController';
     import AppHead from '@/components/AppHead.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
     import IssueTimeline from '@/components/issue/IssueTimeline.svelte';
@@ -30,6 +31,8 @@
         board,
         members,
         labels,
+        watchers,
+        isWatching,
         timeline,
         timelineLimit,
         stories,
@@ -40,6 +43,8 @@
         board: { data: Board };
         members: { data: Member[] };
         labels: { data: Label[] };
+        watchers: { data: Member[] };
+        isWatching: boolean;
         timeline?: TimelineEntry[];
         timelineLimit: number;
         stories: { data: Issue[] };
@@ -92,6 +97,13 @@
         return () => echo.leave(channelName);
     });
 
+    const toggleWatching = () =>
+        router.visit((isWatching ? unwatch : watch).url(current.id), {
+            method: isWatching ? 'delete' : 'post',
+            preserveScroll: true,
+            only: ['watchers', 'isWatching'],
+        });
+
     let editOpen = $state(false);
     let deleteOpen = $state(false);
 
@@ -120,6 +132,9 @@
             <h1 class={cn('text-2xl font-semibold', current.closed_at && 'line-through')}>{current.name}</h1>
         </div>
         <div class="flex shrink-0 gap-2">
+            <Button variant="outline" size="sm" aria-pressed={isWatching} onclick={toggleWatching}>
+                {isWatching ? 'Watching' : 'Watch'}
+            </Button>
             <Button variant="outline" size="sm" onclick={() => (editOpen = true)}>Edit</Button>
             <Button variant="destructive" size="sm" onclick={() => (deleteOpen = true)}>Delete</Button>
         </div>
@@ -141,6 +156,16 @@
                 {:else}
                     <span class="text-muted-foreground">Unassigned</span>
                 {/if}
+            </dd>
+        </div>
+        <div class="space-y-1 sm:col-span-3">
+            <dt class="text-muted-foreground">Watchers</dt>
+            <dd class="flex flex-wrap items-center gap-1.5">
+                {#each watchers.data as watcher (watcher.id)}
+                    <UserAvatar user={watcher} />
+                {:else}
+                    <span class="text-muted-foreground">No one is watching. Watchers are notified of status changes, comments, descriptions and assignments.</span>
+                {/each}
             </dd>
         </div>
         {#if current.labels && current.labels.length > 0}

@@ -25,6 +25,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $email
  * @property CarbonImmutable|null $email_verified_at
  * @property string $password
+ * @property bool $email_notifications
  * @property string|null $profile_photo_path
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
@@ -55,8 +56,19 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'email_notifications' => 'boolean',
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Issues the user is watching.
+     *
+     * @return BelongsToMany<Issue, $this>
+     */
+    public function watchedIssues(): BelongsToMany
+    {
+        return $this->belongsToMany(Issue::class, 'issue_watcher')->withPivot('created_at');
     }
 
     /**

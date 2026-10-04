@@ -29,6 +29,11 @@ class RemoveBoardMember
             $assignedIds = $board->issues()->where('assigned_id', $member->id)->pluck('id')->all();
             $board->issues()->whereKey($assignedIds)->update(['assigned_id' => null]);
             Issue::reindex($assignedIds);
+
+            DB::table('issue_watcher')
+                ->where('user_id', $member->id)
+                ->whereIn('issue_id', $board->issues()->withTrashed()->select('issues.id'))
+                ->delete();
         });
 
         BoardUpdated::dispatch($board->id);

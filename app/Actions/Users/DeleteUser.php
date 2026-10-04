@@ -27,6 +27,7 @@ class DeleteUser
                 ->filter(fn (Board $board) => $board->isLastAdmin($user))
                 ->each(fn (Board $board) => $this->handOver($board, $user));
 
+            $user->notifications()->delete();
             $user->delete();
         });
     }

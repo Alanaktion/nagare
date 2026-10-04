@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
                 ? $request->user()->boards()->orderBy('name')->get(['boards.id', 'boards.name'])
                     ->map(fn ($board) => ['id' => $board->id, 'name' => $board->name])
                 : [],
+            'unreadNotifications' => fn () => $request->user()?->unreadNotifications()->count() ?? 0,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

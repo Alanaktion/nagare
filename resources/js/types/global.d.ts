@@ -23,6 +23,7 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarBoards: SidebarBoard[];
+            unreadNotifications: number;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

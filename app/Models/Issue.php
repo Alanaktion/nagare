@@ -179,6 +179,16 @@ class Issue extends Model
     }
 
     /**
+     * The users watching the issue, who are notified when it changes.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'issue_watcher')->withPivot('created_at');
+    }
+
+    /**
      * @return HasMany<Comment, $this>
      */
     public function comments(): HasMany

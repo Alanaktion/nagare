@@ -15,10 +15,13 @@ use App\Models\Label;
 use App\Models\Sprint;
 use App\Models\Status;
 use App\Models\User;
+use App\Notifications\IssueChanged;
+use App\Notifications\IssueCommented;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * A small team with one board of each kind: kanban, sprints only, stories
@@ -132,6 +135,9 @@ class DemoSeeder extends Seeder
         $this->activity($crash, $this->teammate(1), IssueActivityType::Moved, ['from' => 'To Do', 'to' => 'In Progress'], 60 * 20);
         $this->comment($crash, $this->teammate(2), "I can reproduce this on a Pixel 6. It only happens when the app is resumed from the **recent apps** screen.\n\nStack trace in the crash log points at `ResumeCoordinator`.", 60 * 18);
         $this->comment($crash, $this->teammate(1), "Thanks! I'll take a look this afternoon.\n\n- [ ] reproduce\n- [ ] fix\n- [ ] add a regression test", 60 * 17);
+        $crash->watchers()->attach([$this->teammate(0)->id, $this->teammate(1)->id, $this->teammate(2)->id]);
+        $this->notify($this->teammate(0), $crash, $board, $this->teammate(2), ['kind' => 'commented', 'comment_id' => 0, 'excerpt' => 'I can reproduce this on a Pixel 6. It only happens when the app is resumed from the recent apps screen.'], 60 * 18);
+        $this->notify($this->teammate(0), $crash, $board, $this->teammate(1), ['kind' => 'changed', 'changes' => [['type' => 'moved', 'from' => 'To Do', 'to' => 'In Progress', 'to_you' => false]]], 60 * 20);
         $this->activity($crash, $this->teammate(0), IssueActivityType::Assigned, ['from' => null, 'to' => $this->teammate(0)->name], 60 * 2);
         $this->issue($board, $todo, 'Update app store screenshots', sprint: $next, labels: ['Chore']);
         $this->issue($board, $todo, 'Investigate slow cold start');
@@ -227,6 +233,29 @@ class DemoSeeder extends Seeder
             'start_date' => $start,
             'end_date' => $end,
             'closed_at' => $closed ? $end->endOfDay() : null,
+        ]);
+    }
+
+    /**
+     * Give a user an unread notification about an issue.
+     *
+     * @param  array<string, mixed>  $details
+     */
+    private function notify(User $recipient, Issue $issue, Board $board, User $actor, array $details, int $minutesAgo): void
+    {
+        $recipient->notifications()->create([
+            'id' => (string) Str::uuid(),
+            'type' => $details['kind'] === 'commented' ? IssueCommented::class : IssueChanged::class,
+            'data' => [
+                ...$details,
+                'issue_id' => $issue->id,
+                'issue_name' => $issue->name,
+                'board_id' => $board->id,
+                'board_name' => $board->name,
+                'actor' => ['id' => $actor->id, 'name' => $actor->name],
+            ],
+            'created_at' => now()->subMinutes($minutesAgo),
+            'updated_at' => now()->subMinutes($minutesAgo),
         ]);
     }
 
