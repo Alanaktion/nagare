@@ -1,15 +1,21 @@
 <script lang="ts">
     import ArrowDown from '@lucide/svelte/icons/arrow-down';
     import ArrowUp from '@lucide/svelte/icons/arrow-up';
+    import GripVertical from '@lucide/svelte/icons/grip-vertical';
     import Plus from '@lucide/svelte/icons/plus';
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import InputError from '@/components/InputError.svelte';
+    import { dndzone, type DndEvent } from 'svelte-dnd-action';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
 
+    /**
+     * `id` is a client-side key (required by the drag-and-drop library);
+     * `statusId` is the saved status's database id, if it has one.
+     */
     export type StatusDraft = {
-        key: number;
-        id?: number;
+        id: number;
+        statusId?: number;
         name: string;
         is_closed: boolean;
         issues_count?: number;
@@ -33,19 +39,19 @@
         errors?: Record<string, string>;
     } = $props();
 
-    const keptExisting = $derived(statuses.filter((status) => status.id !== undefined));
+    const keptExisting = $derived(statuses.filter((status) => status.statusId !== undefined));
 
-    let nextKey = Math.max(0, ...statuses.map((status) => status.key)) + 1;
+    let nextKey = Math.max(0, ...statuses.map((status) => status.id)) + 1;
 
     const add = () => {
-        statuses.push({ key: nextKey++, name: '', is_closed: false });
+        statuses.push({ id: nextKey++, name: '', is_closed: false });
     };
 
     const remove = (index: number) => {
         const [status] = statuses.splice(index, 1);
-        if (status.id !== undefined) {
+        if (status.statusId !== undefined) {
             removed.push({
-                id: status.id,
+                id: status.statusId,
                 name: status.name,
                 is_closed: status.is_closed,
                 issues_count: status.issues_count ?? 0,
@@ -57,12 +63,24 @@
     const restore = (index: number) => {
         const [status] = removed.splice(index, 1);
         statuses.push({
-            key: nextKey++,
-            id: status.id,
+            id: nextKey++,
+            statusId: status.id,
             name: status.name,
             is_closed: status.is_closed,
             issues_count: status.issues_count,
         });
+    };
+
+    // Rows can only be dragged by their handle, so the name input stays selectable.
+    let dragDisabled = $state(true);
+
+    const handleConsider = (event: CustomEvent<DndEvent<StatusDraft>>) => {
+        statuses = event.detail.items;
+    };
+
+    const handleFinalize = (event: CustomEvent<DndEvent<StatusDraft>>) => {
+        statuses = event.detail.items;
+        dragDisabled = true;
     };
 
     const move = (index: number, offset: -1 | 1) => {
@@ -75,12 +93,28 @@
 </script>
 
 <div class="space-y-3">
-    <ol class="space-y-2">
-        {#each statuses as status, index (status.key)}
-            <li class="space-y-1">
+    <ol
+        class="space-y-2"
+        use:dndzone={{ items: statuses, flipDurationMs: 0, dragDisabled, dropTargetStyle: {} }}
+        onconsider={handleConsider}
+        onfinalize={handleFinalize}
+    >
+        {#each statuses as status, index (status.id)}
+            <li class="space-y-1 rounded-md bg-background">
                 <div class="flex items-center gap-2">
-                    {#if status.id}
-                        <input type="hidden" name="statuses[{index}][id]" value={status.id} />
+                    <button
+                        type="button"
+                        class="cursor-grab touch-none text-muted-foreground"
+                        aria-label="Drag to reorder {status.name || 'status'}"
+                        onmousedown={() => (dragDisabled = false)}
+                        ontouchstart={() => (dragDisabled = false)}
+                        onmouseup={() => (dragDisabled = true)}
+                        ontouchend={() => (dragDisabled = true)}
+                    >
+                        <GripVertical class="size-4" />
+                    </button>
+                    {#if status.statusId}
+                        <input type="hidden" name="statuses[{index}][id]" value={status.statusId} />
                     {/if}
                     <Input
                         name="statuses[{index}][name]"
@@ -155,8 +189,8 @@
                                     class="h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 >
                                     <option value={undefined} disabled>Choose a status</option>
-                                    {#each keptExisting as target (target.id)}
-                                        <option value={target.id}>{target.name || 'Untitled status'}</option>
+                                    {#each keptExisting as target (target.statusId)}
+                                        <option value={target.statusId}>{target.name || 'Untitled status'}</option>
                                     {/each}
                                 </select>
                             {:else}

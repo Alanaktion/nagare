@@ -49,7 +49,9 @@ class IssueController extends Controller
     {
         $updateIssue->handle($issue, $request->validated());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Issue updated.')]);
+        if ($request->hasAny(['name', 'description', 'assigned_id'])) {
+            Inertia::flash('toast', ['type' => 'success', 'message' => __('Issue updated.')]);
+        }
 
         return back();
     }

@@ -214,3 +214,66 @@ test('members can delete issues and deleted issues are gone', function () {
     expect($issue->fresh()->trashed())->toBeTrue();
     $this->get(route('issues.show', $issue))->assertNotFound();
 });
+
+describe('moving issues', function () {
+    test('a move updates status, sort and story together', function () {
+        $this->board->update(['has_stories' => true]);
+        $story = Issue::factory()->story()->inStatus($this->todo)->create();
+        $task = Issue::factory()->inStatus($this->todo)->create(['sort' => 1]);
+
+        $this->actingAs($this->user)->put(route('issues.update', $task), [
+            'status_id' => $this->progress->id,
+            'sort' => 2.5,
+            'parent_id' => $story->id,
+        ])->assertSessionHasNoErrors();
+
+        $task->refresh();
+        expect($task->status_id)->toBe($this->progress->id)
+            ->and($task->sort)->toBe(2.5)
+            ->and($task->parent_id)->toBe($story->id);
+    });
+
+    test('a task can be moved out of its story', function () {
+        $this->board->update(['has_stories' => true]);
+        $story = Issue::factory()->story()->inStatus($this->todo)->create();
+        $task = Issue::factory()->inStatus($this->todo)->create(['parent_id' => $story->id]);
+
+        $this->actingAs($this->user)->put(route('issues.update', $task), ['parent_id' => null])
+            ->assertSessionHasNoErrors();
+
+        expect($task->fresh()->parent_id)->toBeNull();
+    });
+
+    test('sort must be numeric', function () {
+        $issue = Issue::factory()->inStatus($this->todo)->create();
+
+        $this->actingAs($this->user)->put(route('issues.update', $issue), ['sort' => 'top'])
+            ->assertSessionHasErrors('sort');
+    });
+
+    test('a column with well-spaced sort values is left alone', function () {
+        $first = Issue::factory()->inStatus($this->todo)->create(['sort' => 1]);
+        $second = Issue::factory()->inStatus($this->todo)->create(['sort' => 2]);
+        $moved = Issue::factory()->inStatus($this->progress)->create(['sort' => 9]);
+
+        $this->actingAs($this->user)->put(route('issues.update', $moved), ['status_id' => $this->todo->id, 'sort' => 1.5]);
+
+        expect($first->fresh()->sort)->toBe(1.0)
+            ->and($second->fresh()->sort)->toBe(2.0)
+            ->and($moved->fresh()->sort)->toBe(1.5);
+    });
+
+    test('a crowded column is renumbered in the same order', function () {
+        $first = Issue::factory()->inStatus($this->todo)->create(['sort' => 1]);
+        $second = Issue::factory()->inStatus($this->todo)->create(['sort' => 1.00001]);
+        $third = Issue::factory()->inStatus($this->todo)->create(['sort' => 5]);
+        $elsewhere = Issue::factory()->inStatus($this->progress)->create(['sort' => 0.5]);
+
+        $this->actingAs($this->user)->put(route('issues.update', $third), ['sort' => 1.000015]);
+
+        expect($first->fresh()->sort)->toBe(1.0)
+            ->and($second->fresh()->sort)->toBe(2.0)
+            ->and($third->fresh()->sort)->toBe(3.0)
+            ->and($elsewhere->fresh()->sort)->toBe(0.5);
+    });
+});

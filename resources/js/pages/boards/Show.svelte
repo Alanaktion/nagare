@@ -1,11 +1,14 @@
 <script lang="ts">
-    import { Link, setLayoutProps } from '@inertiajs/svelte';
+    import { Link, router, setLayoutProps } from '@inertiajs/svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import Settings from '@lucide/svelte/icons/settings';
+    import { dndzone, setKeyboardDragTrigger, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
+    import { update } from '@/actions/App/Http/Controllers/IssueController';
     import AppHead from '@/components/AppHead.svelte';
     import IssueCard from '@/components/board/IssueCard.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
     import { Button } from '@/components/ui/button';
+    import { sortBetween } from '@/lib/sort';
     import { edit, index, show } from '@/routes/boards';
     import type { Board, Issue, IssueRole, Member } from '@/types';
 
@@ -23,15 +26,100 @@
     const statuses = $derived(current.statuses ?? []);
     const stories = $derived(issues.data.filter((issue) => issue.role === 'story'));
     const tasks = $derived(issues.data.filter((issue) => issue.role !== 'story'));
-    const orphanTasks = $derived(
-        tasks.filter((task) => task.parent_id === null),
-    );
     const gridStyle = $derived(
         `grid-template-columns: repeat(${statuses.length + (current.has_stories ? 1 : 0)}, minmax(16rem, 1fr))`,
     );
 
     const tasksIn = (list: Issue[], statusId: number) =>
         list.filter((issue) => issue.status_id === statusId);
+
+    // Space starts a keyboard drag, leaving Enter free to open the focused card.
+    setKeyboardDragTrigger('space');
+
+    // Each draggable cell (a status column, split by story on story boards)
+    // keeps a local copy of its issues so dnd-action can preview drags.
+    const zoneKey = (statusId: number, parentId: number | null) =>
+        `${current.has_stories ? (parentId ?? 'none') : 'all'}:${statusId}`;
+
+    const buildZones = () => {
+        const built: Record<string, Issue[]> = {};
+        for (const issue of current.has_stories ? tasks : issues.data) {
+            (built[zoneKey(issue.status_id, issue.parent_id)] ??= []).push(issue);
+        }
+        return built;
+    };
+
+    let zones: Record<string, Issue[]> = $state({});
+    let isDragging = false;
+    let hasPendingRebuild = false;
+
+    $effect(() => {
+        const rebuilt = buildZones();
+        if (isDragging) {
+            hasPendingRebuild = true;
+        } else {
+            zones = rebuilt;
+        }
+    });
+
+    const handleConsider = (key: string) => (event: CustomEvent<DndEvent<Issue>>) => {
+        isDragging = true;
+        zones[key] = event.detail.items;
+    };
+
+    const handleFinalize =
+        (key: string, statusId: number, parentId: number | null) =>
+        (event: CustomEvent<DndEvent<Issue>>) => {
+            const { items, info } = event.detail;
+            zones[key] = items;
+            isDragging = false;
+
+            if (info.trigger === TRIGGERS.DROPPED_INTO_ZONE) {
+                const index = items.findIndex((item) => item.id === Number(info.id));
+                persistMove(items[index], items[index - 1]?.sort, items[index + 1]?.sort, statusId, parentId);
+            } else if (hasPendingRebuild) {
+                zones = buildZones();
+            }
+            hasPendingRebuild = false;
+        };
+
+    const persistMove = (
+        moved: Issue,
+        previousSort: number | undefined,
+        nextSort: number | undefined,
+        statusId: number,
+        parentId: number | null,
+    ) => {
+        const columnEnd = Math.max(0, ...issues.data.filter((issue) => issue.status_id === statusId).map((issue) => issue.sort)) + 1;
+        const sort = sortBetween(previousSort, nextSort, columnEnd);
+        const isClosing = statuses.find((status) => status.id === statusId)?.is_closed ?? false;
+        const changes = {
+            status_id: statusId,
+            sort,
+            ...(current.has_stories ? { parent_id: parentId } : {}),
+        };
+
+        router
+            .optimistic<{ issues: { data: Issue[] } }>((props) => ({
+                issues: {
+                    ...props.issues,
+                    data: props.issues.data.map((issue) =>
+                        issue.id === moved.id
+                            ? {
+                                  ...issue,
+                                  ...changes,
+                                  closed_at: isClosing ? (issue.closed_at ?? new Date().toISOString()) : null,
+                              }
+                            : issue,
+                    ),
+                },
+            }))
+            .patch(update.url(moved.id), changes, {
+                async: true,
+                preserveScroll: true,
+                only: ['issues'],
+            });
+    };
 
     let dialogOpen = $state(false);
     let dialogKey = $state(0);
@@ -59,27 +147,41 @@
 
 <AppHead title={current.name} />
 
-{#snippet addButton(label: string, role: IssueRole, statusId?: number, parentId?: number)}
-    <button
-        type="button"
-        class="flex w-full items-center justify-center gap-1 rounded-md p-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        aria-label={label}
-        onclick={() => openCreate(role, statusId, parentId)}
+{#snippet dropZone(statusId: number, parentId: number | null, class_: string)}
+    {@const key = zoneKey(statusId, parentId)}
+    <div
+        class={['flex flex-col gap-2 rounded-md p-2', class_]}
+        data-status={statusId}
+        use:dndzone={{
+            items: zones[key] ?? [],
+            type: 'task',
+            flipDurationMs: 0,
+            delayTouchStart: true,
+            dropTargetClasses: ['bg-accent/50'],
+            dropTargetStyle: {},
+        }}
+        onconsider={handleConsider(key)}
+        onfinalize={handleFinalize(key, statusId, parentId)}
     >
-        <Plus class="size-3.5" /> Add
-    </button>
-{/snippet}
-
-{#snippet taskCell(cellTasks: Issue[], statusId: number, parentId?: number)}
-    <div class="flex min-h-16 flex-col gap-2 p-2" data-status={statusId}>
-        {#each cellTasks as task (task.id)}
+        {#each zones[key] ?? [] as task (task.id)}
             <IssueCard issue={task} />
         {/each}
-        {@render addButton('Add task', 'task', statusId, parentId)}
     </div>
 {/snippet}
 
-<div class="flex h-full flex-col gap-4 p-4">
+{#snippet addTaskButton(label: string, parentId?: number)}
+    <Button
+        variant="ghost"
+        size="icon"
+        class="size-7 shrink-0"
+        aria-label={label}
+        onclick={() => openCreate('task', undefined, parentId)}
+    >
+        <Plus class="size-4" />
+    </Button>
+{/snippet}
+
+<div class="flex flex-1 flex-col gap-4 p-4">
     <div class="flex items-center justify-between gap-4">
         <h1 class="text-xl font-semibold">{current.name}</h1>
         <div class="flex items-center gap-2">
@@ -99,54 +201,84 @@
         </div>
     </div>
 
-    <div class="flex-1 overflow-x-auto">
-        <div class="grid min-w-max gap-px overflow-hidden rounded-lg border bg-border" style={gridStyle}>
-            {#if current.has_stories}
+    {#if current.has_stories}
+        <div class="overflow-x-auto">
+            <div class="grid min-w-max gap-px overflow-hidden rounded-lg border bg-border" style={gridStyle}>
                 <h2 class="bg-muted px-3 py-2 text-sm font-medium">Story</h2>
-            {/if}
-            {#each statuses as status (status.id)}
-                <h2 class="bg-muted px-3 py-2 text-sm font-medium">
-                    {status.name}
-                    <span class="ml-1 text-xs font-normal text-muted-foreground">
-                        {tasksIn(current.has_stories ? tasks : issues.data, status.id).length}
-                    </span>
-                </h2>
-            {/each}
+                {#each statuses as status (status.id)}
+                    <h2 class="bg-muted px-3 py-2 text-sm font-medium">
+                        {status.name}
+                        <span class="ml-1 text-xs font-normal text-muted-foreground">
+                            {tasksIn(tasks, status.id).length}
+                        </span>
+                    </h2>
+                {/each}
 
-            {#if current.has_stories}
                 {#each stories as story (story.id)}
-                    <div class="bg-background p-2" data-story={story.id}>
-                        <IssueCard issue={story} />
+                    <div class="flex items-start gap-1 bg-background p-2" data-story={story.id}>
+                        <div class="min-w-0 flex-1">
+                            <IssueCard issue={story} />
+                        </div>
+                        {@render addTaskButton(`Add task to ${story.name}`, story.id)}
                     </div>
                     {#each statuses as status (status.id)}
-                        <div class="bg-background">
-                            {@render taskCell(
-                                tasksIn(
-                                    tasks.filter((task) => task.parent_id === story.id),
-                                    status.id,
-                                ),
-                                status.id,
-                                story.id,
-                            )}
+                        <div class="flex bg-background">
+                            {@render dropZone(status.id, story.id, 'min-h-16 flex-1')}
                         </div>
                     {/each}
                 {/each}
 
-                <div class="bg-background p-3 text-sm text-muted-foreground">No story</div>
+                <div class="flex items-start justify-between gap-1 bg-background p-2 pl-3">
+                    <p class="py-1 text-sm text-muted-foreground">No story</p>
+                    {@render addTaskButton('Add task without a story')}
+                </div>
                 {#each statuses as status (status.id)}
-                    <div class="bg-background">
-                        {@render taskCell(tasksIn(orphanTasks, status.id), status.id)}
+                    <div class="flex bg-background">
+                        {@render dropZone(status.id, null, 'min-h-16 flex-1')}
                     </div>
                 {/each}
-            {:else}
-                {#each statuses as status (status.id)}
-                    <div class="bg-background">
-                        {@render taskCell(tasksIn(issues.data, status.id), status.id)}
-                    </div>
-                {/each}
-            {/if}
+            </div>
         </div>
-    </div>
+    {:else}
+        <div class="flex min-h-96 flex-1 gap-3 overflow-x-auto">
+            {#each statuses as status (status.id)}
+                {@const isEmpty = (zones[zoneKey(status.id, null)] ?? []).length === 0}
+                <section class="flex min-w-64 flex-1 flex-col rounded-lg border bg-muted/40">
+                    <header class="flex items-center justify-between gap-2 px-3 py-2">
+                        <h2 class="text-sm font-medium">
+                            {status.name}
+                            <span class="ml-1 text-xs font-normal text-muted-foreground">
+                                {(zones[zoneKey(status.id, null)] ?? []).length}
+                            </span>
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-7"
+                            aria-label="Add task to {status.name}"
+                            onclick={() => openCreate('task', status.id)}
+                        >
+                            <Plus class="size-4" />
+                        </Button>
+                    </header>
+                    <div class="relative flex flex-1 flex-col">
+                        {@render dropZone(status.id, null, 'flex-1')}
+                        {#if isEmpty}
+                            <div class="pointer-events-none absolute inset-x-0 top-0 p-2">
+                                <button
+                                    type="button"
+                                    class="pointer-events-auto flex w-full items-center justify-center gap-1 rounded-md border border-dashed p-3 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                    onclick={() => openCreate('task', status.id)}
+                                >
+                                    <Plus class="size-3.5" /> Add task
+                                </button>
+                            </div>
+                        {/if}
+                    </div>
+                </section>
+            {/each}
+        </div>
+    {/if}
 </div>
 
 {#key dialogKey}

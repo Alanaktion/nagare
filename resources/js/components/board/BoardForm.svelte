@@ -6,7 +6,7 @@
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
-    import type { Board, SprintCycle } from '@/types';
+    import type { Board, SprintCycle, Status } from '@/types';
 
     let {
         action,
@@ -18,7 +18,9 @@
         submitLabel: string;
     } = $props();
 
-    const defaultStatuses = [
+    type StatusSeed = Pick<Status, 'name' | 'is_closed'> & Partial<Pick<Status, 'id' | 'issues_count'>>;
+
+    const defaultStatuses: StatusSeed[] = [
         { name: 'To Do', is_closed: false },
         { name: 'In Progress', is_closed: false },
         { name: 'Done', is_closed: true },
@@ -31,7 +33,13 @@
     let hasSprints = $state(board?.has_sprints ?? false);
     /* svelte-ignore state_referenced_locally */
     let statuses: StatusDraft[] = $state(
-        (board?.statuses ?? defaultStatuses).map((status, key) => ({ ...status, key })),
+        ((board?.statuses ?? defaultStatuses) as StatusSeed[]).map((status, index) => ({
+            id: index,
+            statusId: status.id,
+            name: status.name,
+            is_closed: status.is_closed,
+            issues_count: status.issues_count,
+        })),
     );
 
     let removedStatuses: RemovedStatus[] = $state([]);

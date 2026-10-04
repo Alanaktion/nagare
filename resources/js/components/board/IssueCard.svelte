@@ -15,6 +15,7 @@
         issue.closed_at && 'text-muted-foreground',
     )}
     data-issue={issue.id}
+    draggable={false}
 >
     <span class={cn('min-w-0 break-words', issue.closed_at && 'line-through')}>{issue.name}</span>
     {#if issue.assignee}
