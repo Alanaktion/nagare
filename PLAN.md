@@ -1,134 +1,56 @@
-# Nagare — Rebuild Plan
+# Nagare — Plan
 
-High-level architecture and phased roadmap for rebuilding Nagare (see `FEATURES.md`) on the current starter kit: Laravel 13, Inertia v3, Svelte 5, Tailwind 4, Fortify, Wayfinder, Pest 5. The old Vue/Jetstream WIP lives in `../nagare.old` and is a reference for domain logic only. Nothing is ported verbatim.
+Nagare is a team task board (see `FEATURES.md`) built on Laravel 13, Inertia v3, Svelte 5, Tailwind 4, Fortify, Wayfinder and Pest 5. v1 is complete. This document summarizes it and lays out the next phases.
 
-## 1. Where we start
+## v1 summary
 
-Already provided by the starter kit, so **not** rebuilt:
+- **Boards**: two independent flags, `has_stories` and `has_sprints`, with all four combinations supported. Soft delete and restore by admins. Ordered statuses, any of which can close issues, edited inline with drag reorder. Deleting a status that still has issues requires choosing where they go.
+- **Issues**: one `issues` table with `role` (`epic`/`story`/`task`) and `parent_id`. Created, edited and deleted from a dialog and a detail page. The closed timestamp follows the status. Epics exist in the schema only.
+- **Drag-and-drop**: `svelte-dnd-action` across columns and story lanes, with touch and keyboard support. Fractional sort with server-side rebalancing. Inertia optimistic updates with rollback.
+- **Realtime**: Reverb + Echo on private `boards.{id}` channels authorized by `BoardPolicy::view`. Issue and board events are applied to page props without a reload. The sender's tab is skipped.
+- **Sprints**: weekly, monthly, quarterly or custom cycles. Fixed-cycle sprints are created on demand and by the daily `sprints:roll`, which also closes ended sprints and carries unfinished issues over. Sprints can be created and closed by hand. Stories appear in any sprint that holds one of their tasks.
+- **Members & users**: admin and member roles, with at least one admin per board (also when an account is deleted). Admins add existing users. Members can leave. User directory and profiles showing shared boards and assigned issues.
+- **Profile photos**: 256×256 WebP via Laravel's `Image` API, with an initials fallback.
+- **Dashboard & polish**: recent boards, assigned issues, current-sprint progress, empty states and skeletons, indigo theme, an accessibility pass. Kanban boards and backlogs hide issues closed more than 14 days ago unless asked.
+- **Hardening**: audit fixes, Larastan level 8, lazy-loading guard outside production, `DemoSeeder`, production container target, scheduler service, CI with pnpm.
 
-- Auth: login, register, password reset, email verification, password confirmation, 2FA, passkeys (Fortify)
-- Settings: profile, security (password + 2FA/passkeys), appearance
-- App shell: sidebar layout, breadcrumbs, shadcn-svelte-style `ui/` components (bits-ui), toasts, dark mode
-- Tooling: Wayfinder, Pest, Pint, Larastan, `vp` (Vite+) for build/check
+## Conventions
 
-Gaps against `FEATURES.md`: profile photos, all domain models, boards UI, drag-and-drop, realtime, user directory, real dashboard.
+- Thin controllers call action classes in `app/Actions/*`. Every write goes through a Form Request. Responses use Eloquent API Resources. Pages call routes through Wayfinder.
+- `BoardPolicy` is the single source of authorization. Issue, sprint and channel checks delegate to it.
+- Realtime events are dispatched explicitly from actions (`ShouldBroadcast`, `ShouldDispatchAfterCommit`, skipping the sender). Pages apply event payloads to their props and only refetch when the payload can't be applied safely.
+- Slow page sections are deferred props with skeletons. Lists have empty states.
+- Every phase ends with passing Pest tests, Pint, Larastan, `vp check` and `svelte-check`.
 
-## 2. Guiding decisions
+## v1 follow-ups
 
-| Topic          | Decision                                                                                                                                                                                                                | Rationale                                                                                      |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Issue model    | One `issues` table with `parent_id` and `role` (`epic`/`story`/`task`), per TODO.md                                                                                                                                     | Replaces old separate stories/tasks; allows arbitrary nesting later                            |
-| Board behavior | Two independent flags on `boards`: `has_stories`, `has_sprints` (plus `sprint_cycle`). **All four combinations are supported.** "Kanban" (neither) and "Scrum" (both) are presets in the create form that set the flags | TODO.md calls for this; avoids a rigid type enum                                               |
-| Membership     | `board_user` pivot with `role` enum (`admin`/`member`). Add `boards.created_by` as a plain FK, kept separate from admin membership                                                                                      | Ownership transfers without losing creator info                                                |
-| Authorization  | `BoardPolicy` is the single source of truth. Issue, status and sprint actions delegate to it. Broadcast channels reuse it                                                                                               | Matches FEATURES.md §8–9                                                                       |
-| Enums          | PHP backed enums (`BoardRole`, `IssueRole`, `SprintCycle`) cast on models; mirrored as TS types                                                                                                                         | Replaces old string constants                                                                  |
-| Ordering       | Fractional `sort` (float/double) per column, computed client-side from neighbors, with a server-side rebalance when gaps get too small                                                                                  | Keeps drags to one write; rebalance prevents float exhaustion, a gap in the old version        |
-| Mutations      | Plain Inertia web routes + controllers, with Form Requests. Drag-and-drop uses `router.patch` with optimistic updates and `preserveScroll`/`only`. No separate JSON API, no Sanctum                                     | Per TODO.md; Inertia v3 optimistic updates replace the old axios flow                          |
-| Realtime       | Laravel Reverb + Echo on private `boards.{id}` channels. Explicit broadcast events dispatched from an action class, not model-observer `BroadcastsEvents`                                                               | Explicit payloads (including issue deletes and reorders) and easier to test with `Event::fake` |
-| Drag-and-drop  | `svelte-dnd-action` (the common Svelte choice) unless the Phase 3 spike shows a problem with nested story lanes or touch                                                                                                | Needs touch support, cross-column and nested-story-lane drops                                  |
-| Business logic | Small action classes in `app/Actions/` (`MoveIssue`, `CreateBoard`, `SyncStatuses`, `ResolveCurrentSprint`) called by thin controllers                                                                                  | Same convention as the existing `app/Actions/Fortify`                                          |
-| Typing         | Wayfinder for all routes. Shared TS types in `resources/js/types` mirror Eloquent API Resources                                                                                                                         | Resources give a stable contract between PHP and Svelte                                        |
-| Soft deletes   | Boards, statuses, issues (per FEATURES.md). Deleting a status that still has issues requires choosing a target status to move them to                                                                                   | Old schema left this undefined                                                                 |
+Small items worth doing alongside v2:
 
-**Dependencies**: `laravel/reverb`, `laravel-echo` and `pusher-js` are approved and installed (Phase 0). Still needing approval when reached: the DnD lib (Phase 3) and an image library (Phase 7). The old plan had a "fallback if image processing is unavailable"; I'd drop that and require GD, which ships with PHP.
+- Live validation on the board and issue forms with Inertia precognition (`FEATURES.md` §3).
+- Send a removed member away from an open board page right away, instead of on their next request.
+- Show on a story card when its other tasks are in other sprints (for example "Also in 2026W42").
+- Optional board description.
+- Larastan level 9, once actions take typed input objects instead of validated arrays.
 
-## 3. Data model
+## v2 roadmap
 
-```
-users           (starter kit) + profile_photo_path nullable
-boards          id, name, description?, has_stories bool, has_sprints bool,
-                sprint_cycle enum? (weekly|monthly|quarterly|custom),
-                created_by FK users, timestamps, softDeletes
-board_user      board_id, user_id, role (admin|member), unique(board_id,user_id)
-statuses        id, board_id, name, sort, is_closed bool, timestamps, softDeletes
-sprints         id, board_id, slug, start_date, end_date, closed_at?,
-                unique(board_id, slug)
-issues          id, board_id, status_id, sprint_id? (nullOnDelete),
-                parent_id? (nullOnDelete), role (epic|story|task),
-                author_id, assigned_id? (nullOnDelete),
-                name, description?, sort (double), closed_at?,
-                timestamps, softDeletes
-                index(board_id, status_id, sort)
-```
+Ordered by dependency: activity recording underpins comments, notifications and invites, so it comes early. Each phase is a usable vertical slice.
 
-Invariants (enforced in actions and covered by tests):
+| #   | Phase                        | Delivers                                                                                                                                                                                                                                                                                                                                                                                      | Decide first                                                                                                  |
+| --- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 1   | **Labels, search & filters** | Per-board labels (name and colour) on issues, edited in board settings. A board filter bar (assignee, label, text, "only mine") applied client-side to the loaded issues, with the state kept in the query string. A global search across the user's boards with a database `LIKE` query, scoped through membership                                                                           | Whether search needs Scout (a database driver is enough at this scale)                                        |
+| 2   | **Activity log & comments**  | An `issue_activities` table recorded by the existing actions (created, moved, assigned, sprint changed, closed, renamed). A timeline on the issue page that mixes activity with comments. Comments can be added, edited and deleted (by their author or a board admin), in Markdown rendered safely. New comments and activity arrive in realtime over the board channel                      | Markdown renderer and sanitizer; whether board-level actions (status edits, membership) are logged too        |
+| 3   | **Watchers & notifications** | Issue watchers replace the "collaborators" placeholder. Authors, assignees and commenters watch automatically, and anyone can watch or unwatch. Laravel database notifications for assignment, comments, mentions (`@name`) and status changes on watched issues. A notification bell with unread count over a private user channel. Optional email, per user preference, sent from the queue | Email immediately or as a digest; which events notify by default                                              |
+| 4   | **Attachments**              | Files on issues, stored on a configurable disk (local or S3-compatible) with size and type limits. Image thumbnails via the `Image` API. Served through an authorized controller rather than public URLs. Deleting an issue soft-deletes its attachments, and a scheduled prune removes the files later                                                                                       | Per-file and per-board limits; whether attachments can be added to comments                                   |
+| 5   | **Email invites**            | Admins invite an email address that has no account, with a role. The invite is a signed, expiring link that joins the board after registering or logging in. Pending invites are listed in board settings and can be revoked or resent. Throttled and recorded in the activity log                                                                                                            | Invite lifetime; whether existing users can also be invited (instead of added) so they get a chance to accept |
+| 6   | **Epics**                    | Turn on the `epic` role in the UI. An epic picker on stories, an epics view per board listing stories with progress (done/total tasks rolled up), and an epic badge on story cards. Applies to boards with stories                                                                                                                                                                            | Whether epics span boards (current schema says no) and whether to gate them behind a board flag               |
+| 7   | **Board customization**      | Status colours, per-status WIP limits (warning only), a default status for new issues, and per-board choice of which card fields show (assignee, labels, story). Saved board views (filters from phase 1) shared with members                                                                                                                                                                 | Which options earn their complexity; agree the list before building                                           |
 
-- Moving to a closing status sets `closed_at`. Moving out clears it.
-- Create without a status uses the board's first status.
-- A parent must be on the same board. Role/parent combinations are validated: task→story/epic, story→epic.
-- `has_stories=false` boards only accept `task` issues. `has_sprints=false` boards ignore `sprint_id`.
-- A board always keeps at least one status, and at least one admin.
+Phases 1 and 2 are independent and can swap. Phase 3 needs 2. Phases 4–7 are independent of each other.
 
-## 4. Backend structure
+## Out of scope
 
-- **Models**: `Board`, `Status`, `Sprint`, `Issue` (+ factories and seeders), `User` extended.
-- **Policies**: `BoardPolicy` (view/update = member; delete/restore/forceDelete = admin). `IssuePolicy` delegates to the board.
-- **Controllers** (thin, resourceful): `BoardController`, `BoardStatusController` (or statuses synced via the board form), `SprintController`, `IssueController`, `UserController` (index/show), `DashboardController`, `ProfilePhotoController`.
-- **Form Requests** for every write. Support Inertia precognition on board and issue forms for live validation (FEATURES.md §3).
-- **Resources**: `BoardResource`, `IssueResource`, `StatusResource`, `SprintResource`, `UserResource` (with avatar URL).
-- **Events**: `IssueCreated`, `IssueUpdated`, `IssueDeleted`, each `ShouldBroadcast` on `private-boards.{id}`. `routes/channels.php` authorizes through `BoardPolicy::view`.
-- **Sprints**: `SprintCycle::slugFor(CarbonImmutable)` (replaces the old `Sprint::dateSlug`) and `Board::currentSprint()`. A scheduled command (`sprints:roll`) creates the next sprint and optionally closes the old one. The old version had none, so sprints were never created.
-- **Photos**: a `HasProfilePhoto` concern: resize, convert to WebP, store on the `public` disk, delete on user deletion. Avatar URL falls back to initials.
-
-## 5. Frontend structure
-
-```
-resources/js/pages/
-  boards/   Index, Create, Edit, Show (kanban/scrum grid), Sprint (Show variant)
-  issues/   Show (detail page)
-  users/    Index, Show
-  Dashboard.svelte
-resources/js/components/
-  board/    BoardColumn, IssueCard, StoryLane, IssueDialog, StatusListEditor
-  ...       UserAvatar, UserSelect, EmptyState
-resources/js/lib/    sort.ts (fractional math), echo.ts, board-store.svelte.ts
-```
-
-- **Board view**: reactive board state kept in a Svelte 5 `$state` store seeded from the Inertia props. Local drag updates apply optimistically. Echo events and server responses reconcile into the same store (last-write-wins by `updated_at`, ignoring echoes of our own writes).
-- **Scrum layout**: story lanes (rows) × status columns. Kanban: status columns only. Drop target logic lives in one place so both layouts share it.
-- **Status editor**: inline reorderable list (drag to reorder, rename, closing toggle) shared between Create and Edit board forms.
-- **Sidebar**: lists the user's boards, shared as an Inertia prop (cached or lazy) from the existing `HandleInertiaRequests` middleware.
-- Use deferred props with skeletons for slow sections (dashboard widgets, user profile issue lists).
-- Primary color theming and a design pass on `zinc` + accent (TODO.md item) happen alongside Phase 3.
-
-## 6. Cross-cutting concerns
-
-- **Testing (Pest)**: feature tests for every policy boundary (member / non-member / admin / guest), the issue invariants above, sprint slug and current-sprint logic, and status-sync behavior. Broadcast tests use `Event::fake`. A small number of browser or manual smoke checks cover drag-and-drop, since that is client-heavy. Run Larastan and Pint each phase.
-- **Performance**: eager-load board with statuses/issues/users in one go. Index `issues(board_id, status_id, sort)`. Paginate or window closed issues on large boards (Phase 8).
-- **Dev environment**: SQLite by default; Reverb process added to the `composer run dev` concurrently set.
-- **Deployment**: Docker (serversideup FrankenPHP). The `development` target bind-mounts the code; the `production` target bakes in vendor and built assets. Run the app, Reverb, a queue worker and the scheduler (`schedule:work`, for `sprints:roll`). Laravel Cloud remains an option; Reverb is available there.
-
-## 7. Phased roadmap
-
-Each phase ends with passing tests, Pint, and a usable vertical slice.
-
-| #   | Phase                      | Delivers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| --- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0   | **Foundations** ✅         | Reverb + Echo installed, enums (`BoardRole`, `IssueRole`, `SprintCycle`), base `UserResource`, starter-kit dashboard placeholders pruned                                                                                                                                                                                                                                                                                                                                                              |
-| 1   | **Boards & membership** ✅ | `boards`, `board_user`, `statuses` migrations/models/factories; `BoardPolicy`; board CRUD with inline status editor (reordered with up/down buttons; drag reorder arrives with the Phase 3 DnD library); boards index; sidebar board list; soft delete and restore. Deferred: moving issues to a target status when deleting a status that has issues (Phase 2), last-admin guard (Phase 6)                                                                                                           |
-| 2   | **Issues (static)** ✅     | `issues` migration/model/factory/policy; create/edit/delete via dialog and detail page; closed-timestamp invariants in the model; board view with status columns and story lanes (all four flag combinations; no DnD yet); deleting a status that has issues requires a target status. Sprint assignment arrives with the `sprints` table in Phase 5                                                                                                                                                  |
-| 3   | **Drag-and-drop** ✅       | `svelte-dnd-action` chosen. Cards drag between and within status cells, and between stories on story boards; fractional sort with server-side rebalance; Inertia optimistic updates with rollback; touch via delayed start; space-bar keyboard drag; status editor drag reorder (up/down buttons kept as the keyboard path)                                                                                                                                                                           |
-| 4   | **Realtime** ✅            | Reverb + Echo (`lib/echo.ts`); `IssueCreated/Updated/Deleted` and `BoardUpdated/Deleted` events dispatched from the actions on private `boards.{board}` channels authorized by `BoardPolicy::view`; the sender's tab is skipped via `X-Socket-ID`; board and issue pages apply events to page props with no request. Column renumbering is broadcast so clients stay ordered. Requires a queue worker (`artisan dev` runs one)                                                                        |
-| 5   | **Sprints** ✅             | `sprints` table and `issues.sprint_id`; `SprintCycle` slugs and periods; boards with sprints open on the current sprint (created on demand for fixed cycles) or the backlog; sprint nav (previous/next/select/backlog), manual sprint creation, close with a destination for unfinished issues; daily `sprints:roll` creates the current sprint, closes ended ones and carries unfinished issues over (fixed cycles only); sprint field in the issue dialog; live updates scoped to the viewed sprint |
-| 6   | **Members & users** ✅     | Admins add existing users (searchable), change roles and remove members; members can leave; a board always keeps an admin (checked under a row lock); removing a member unassigns their issues on that board; user directory with search and pagination; profiles show shared boards and a deferred list of assigned issues (shared boards only); assignee picker uses board members                                                                                                                  |
-| 7   | **Profile photos** ✅      | Upload/remove on profile settings; Laravel's `Image` API (`intervention/image` ^4, GD) orients, crops to 256×256 and stores as WebP on the `public` disk; old file deleted on replace and on account deletion; `avatar` / `avatar_url` shared with every user display; initials fallback                                                                                                                                                                                                              |
-| 8   | **Dashboard & polish** ✅  | Dashboard (recent boards, deferred assigned issues and current-sprint progress), shared `EmptyState` component, indigo primary colour and focus rings, a11y pass (skip link, labelled board columns and drop zones, screen-reader text on cards, reduced-motion skeletons), large-board performance (closed issues older than 14 days hidden on kanban boards and backlogs with a show-all toggle, extra `issues` indexes, precomputed counts)                                                        |
-| 9   | **Hardening** ✅           | Codebase audit and fixes (issues on deleted boards, editing issues in closed sprints, account deletion handing boards to another member, tasks lost when a story is deleted live, bulk status moves), Larastan level 8 with `#[CurrentUser]` injection, lazy-loading guard outside production, `DemoSeeder` (one board of each kind), production Docker target and compose scheduler                                                                                                                  |
-
-Phases 1 → 3 are the critical path to a usable product. 4 and 5 can swap order. 6–7 are independent of each other.
-
-## 8. Explicitly deferred / out of scope for v1
-
-- Issue attachments and collaborators (placeholders in the old detail page): deferred; keep the layout slots out until built.
-- Comments, activity log, notifications, search, labels, and per-board customization beyond the two flags.
-- Invites by email: members are added directly from existing users, as in the old TODO.
-- Epics UI: the `epic` role exists in the schema and validation, but the board UI treats stories and tasks only until we decide otherwise.
-
-## 9. Decisions (resolved)
-
-1. Flags, not a type enum. All four `has_stories` × `has_sprints` combinations are valid.
-2. Reverb for realtime.
-3. DnD: `svelte-dnd-action` by default.
-4. Sprints are created automatically by the scheduler, with manual override.
-5. Epics are schema-only for v1.
-6. Deleting a status with issues requires a target status.
+- Teams or organizations above boards: membership stays per board.
+- Time tracking, estimates and burndown charts. Revisit after epics, since roll-ups would share the same queries.
+- Public or guest boards.
+- A JSON API: the app stays Inertia-only until there is a client that needs one.
