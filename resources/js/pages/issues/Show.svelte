@@ -38,6 +38,7 @@
         timeline,
         timelineLimit,
         stories,
+        epics,
         openSprints,
     }: {
         issue: { data: Issue };
@@ -51,6 +52,7 @@
         timeline?: TimelineEntry[];
         timelineLimit: number;
         stories: { data: Issue[] };
+        epics: { data: Issue[] };
         openSprints: { data: Sprint[] };
     } = $props();
 
@@ -94,7 +96,7 @@
                     router.reload({ only: ['timeline', 'attachments'] });
                 }
             })
-            .listen('.board.updated', () => router.reload({ only: ['issue', 'board', 'members', 'labels', 'stories', 'openSprints'] }))
+            .listen('.board.updated', () => router.reload({ only: ['issue', 'board', 'members', 'labels', 'stories', 'epics', 'openSprints'] }))
             .listen('.board.deleted', () => router.visit(index()));
 
         return () => echo.leave(channelName);
@@ -144,12 +146,14 @@
     </div>
 
     <dl class="grid gap-4 text-sm sm:grid-cols-3">
-        <div class="space-y-1">
-            <dt class="text-muted-foreground">Status</dt>
-            <dd>
-                <Badge variant={current.closed_at ? 'secondary' : 'outline'}>{status?.name}</Badge>
-            </dd>
-        </div>
+        {#if current.role !== 'epic'}
+            <div class="space-y-1">
+                <dt class="text-muted-foreground">Status</dt>
+                <dd>
+                    <Badge variant={current.closed_at ? 'secondary' : 'outline'}>{status?.name}</Badge>
+                </dd>
+            </div>
+        {/if}
         <div class="space-y-1">
             <dt class="text-muted-foreground">Assignee</dt>
             <dd class="flex items-center gap-2">
@@ -181,7 +185,7 @@
                 </dd>
             </div>
         {/if}
-        {#if board.data.has_sprints}
+        {#if board.data.has_sprints && current.role !== 'epic'}
             <div class="space-y-1">
                 <dt class="text-muted-foreground">Sprint</dt>
                 <dd>{sprint ? sprintLabel(sprint) : 'Backlog'}</dd>
@@ -189,7 +193,7 @@
         {/if}
         {#if parent}
             <div class="space-y-1">
-                <dt class="text-muted-foreground">Story</dt>
+                <dt class="text-muted-foreground">{current.role === 'story' ? 'Epic' : 'Story'}</dt>
                 <dd>
                     <Link href={show(parent.data.id)} class="underline-offset-4 hover:underline">
                         {parent.data.name}
@@ -218,6 +222,7 @@
     board={board.data}
     members={members.data}
     stories={stories.data}
+    epics={epics.data}
     labels={labels.data}
     sprints={openSprints.data}
     issue={current}

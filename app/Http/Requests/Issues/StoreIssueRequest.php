@@ -26,7 +26,7 @@ class StoreIssueRequest extends FormRequest
     {
         /** @var Board $board */
         $board = $this->route('board');
-        $allowedRoles = $board->has_stories ? [IssueRole::Story, IssueRole::Task] : [IssueRole::Task];
+        $allowedRoles = $board->has_stories ? [IssueRole::Epic, IssueRole::Story, IssueRole::Task] : [IssueRole::Task];
         $role = IssueRole::tryFrom((string) $this->input('role')) ?? IssueRole::Task;
 
         return [

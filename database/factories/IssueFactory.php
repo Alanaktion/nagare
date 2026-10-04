@@ -33,6 +33,14 @@ class IssueFactory extends Factory
     }
 
     /**
+     * Make the issue an epic.
+     */
+    public function epic(): static
+    {
+        return $this->state(['role' => IssueRole::Epic]);
+    }
+
+    /**
      * Make the issue a story.
      */
     public function story(): static

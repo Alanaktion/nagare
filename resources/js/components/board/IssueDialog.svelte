@@ -23,7 +23,8 @@
         open = $bindable(false),
         board,
         members,
-        stories,
+        stories = [],
+        epics = [],
         labels = [],
         sprints = [],
         sprintId,
@@ -35,7 +36,8 @@
         open?: boolean;
         board: Board;
         members: Member[];
-        stories: Issue[];
+        stories?: Issue[];
+        epics?: Issue[];
         labels?: BoardLabel[];
         sprints?: Sprint[];
         sprintId?: number;
@@ -63,7 +65,9 @@
 
     const isEditing = $derived(issue !== undefined);
     const issueRole = $derived(issue?.role ?? role);
+    const isEpic = $derived(issueRole === 'epic');
     const canHaveParent = $derived(board.has_stories && issueRole === 'task');
+    const canHaveEpic = $derived(board.has_stories && issueRole === 'story');
     const selectClass =
         'h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 </script>
@@ -108,6 +112,7 @@
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
+                    {#if !isEpic}
                     <div class="grid gap-2">
                         <Label for="issue-status">Status</Label>
                         <select id="issue-status" name="status_id" class={selectClass}>
@@ -122,6 +127,7 @@
                         </select>
                         <InputError message={errors.status_id} />
                     </div>
+                    {/if}
 
                     <div class="grid gap-2">
                         <Label for="issue-assignee">Assignee</Label>
@@ -160,7 +166,7 @@
                     </fieldset>
                 {/if}
 
-                {#if board.has_sprints}
+                {#if board.has_sprints && !isEpic}
                     <div class="grid gap-2">
                         <Label for="issue-sprint">Sprint</Label>
                         <select id="issue-sprint" name="sprint_id" class={selectClass}>
@@ -188,6 +194,21 @@
                             {#each stories as story (story.id)}
                                 <option value={story.id} selected={story.id === (issue?.parent_id ?? parentId)}>
                                     {story.name}
+                                </option>
+                            {/each}
+                        </select>
+                        <InputError message={errors.parent_id} />
+                    </div>
+                {/if}
+
+                {#if canHaveEpic}
+                    <div class="grid gap-2">
+                        <Label for="issue-epic">Epic</Label>
+                        <select id="issue-epic" name="parent_id" class={selectClass}>
+                            <option value="" selected={!(issue?.parent_id ?? parentId)}>No epic</option>
+                            {#each epics as epic (epic.id)}
+                                <option value={epic.id} selected={epic.id === (issue?.parent_id ?? parentId)}>
+                                    {epic.name}
                                 </option>
                             {/each}
                         </select>

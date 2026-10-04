@@ -7,6 +7,7 @@ use App\Actions\Issues\CreateIssue;
 use App\Actions\Issues\DeleteIssue;
 use App\Actions\Issues\UpdateIssue;
 use App\Enums\BoardRole;
+use App\Enums\IssueRole;
 use App\Http\Requests\Issues\StoreIssueRequest;
 use App\Http\Requests\Issues\UpdateIssueRequest;
 use App\Http\Resources\AttachmentResource;
@@ -67,7 +68,10 @@ class IssueController extends Controller
                     ->get()
             ),
             'stories' => IssueResource::collection(
-                $board->issues()->where('role', 'story')->orderBy('name')->get()
+                $board->issues()->where('role', IssueRole::Story->value)->orderBy('name')->get()
+            ),
+            'epics' => IssueResource::collection(
+                $board->issues()->where('role', IssueRole::Epic->value)->orderBy('name')->get()
             ),
         ]);
     }

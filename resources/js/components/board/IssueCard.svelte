@@ -6,7 +6,7 @@
     import { show } from '@/routes/issues';
     import type { Issue } from '@/types';
 
-    let { issue }: { issue: Issue } = $props();
+    let { issue, epic }: { issue: Issue; epic?: Issue } = $props();
 </script>
 
 <Link
@@ -24,6 +24,12 @@
             {#if issue.closed_at}<span class="sr-only">(closed)</span>{/if}
             {#if issue.assignee}<span class="sr-only">, assigned to {issue.assignee.name}</span>{/if}
         </span>
+        {#if epic}
+            <span class="mt-1.5 inline-block max-w-full truncate rounded-sm bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
+                <span class="sr-only">Epic:</span>
+                {epic.name}
+            </span>
+        {/if}
         {#if issue.labels && issue.labels.length > 0}
             <span class="mt-1.5 flex flex-wrap gap-1">
                 <span class="sr-only">Labels:</span>

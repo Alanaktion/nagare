@@ -32,7 +32,11 @@ class ShowBoard
      */
     public function handle(Board $board, User $viewer, ?Sprint $sprint = null, bool $withOlderClosed = false): Response
     {
-        $issues = $board->issues()->with(['assignee', 'labels'])->withCount('children')->orderBy('sort');
+        $issues = $board->issues()
+            ->where('role', '!=', IssueRole::Epic->value)
+            ->with(['assignee', 'labels'])
+            ->withCount('children')
+            ->orderBy('sort');
 
         if ($board->has_sprints) {
             $issues->inSprintView($sprint?->id);
@@ -61,6 +65,9 @@ class ShowBoard
             'issues' => IssueResource::collection($issues->get()),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
             'labels' => LabelResource::collection($board->labels()->get()),
+            'epics' => IssueResource::collection(
+                $board->has_stories ? $board->issues()->where('role', IssueRole::Epic->value)->orderBy('name')->get() : collect()
+            ),
             'sprint' => $sprint ? new SprintResource($sprint) : null,
             'sprints' => SprintResource::collection(
                 $board->has_sprints ? $board->sprints()->reorder('start_date', 'desc')->limit(30)->get() : collect()

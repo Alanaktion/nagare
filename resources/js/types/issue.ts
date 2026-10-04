@@ -33,3 +33,19 @@ export type Issue = {
     status?: Status;
     closed_at: string | null;
 };
+
+/** An epic with its stories, rolled up to the tasks done and in total. */
+export type Epic = {
+    id: number;
+    name: string;
+    description: string | null;
+    tasks_done: number;
+    tasks_total: number;
+    stories: {
+        id: number;
+        name: string;
+        closed_at: string | null;
+        tasks_done: number;
+        tasks_total: number;
+    }[];
+};

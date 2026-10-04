@@ -7,6 +7,7 @@ use App\Http\Controllers\BoardMemberController;
 use App\Http\Controllers\ClosedSprintController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EpicController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\IssueWatcherController;
 use App\Http\Controllers\LabelController;
@@ -45,6 +46,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->only(['store', 'update', 'destroy']);
     Route::get('search', SearchController::class)->middleware('throttle:60,1')->name('search');
     Route::get('boards/{board}/backlog', [BacklogController::class, 'show'])->name('boards.backlog');
+    Route::get('boards/{board}/epics', [EpicController::class, 'index'])->name('boards.epics.index');
     Route::post('boards/{board}/sprints', [SprintController::class, 'store'])->name('boards.sprints.store');
     Route::get('boards/{board}/sprints/{sprint:slug}', [SprintController::class, 'show'])
         ->scopeBindings()

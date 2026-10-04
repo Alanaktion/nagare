@@ -21,6 +21,7 @@
     } from '@/lib/filters';
     import { sortBetween } from '@/lib/sort';
     import { backlog, edit, index, show } from '@/routes/boards';
+    import { index as epicsIndex } from '@/routes/boards/epics';
     import { show as showSprint } from '@/routes/boards/sprints';
     import type { Board, Issue, IssueRole, Label, Member, Sprint } from '@/types';
 
@@ -29,6 +30,7 @@
         issues,
         members,
         labels,
+        epics,
         sprint,
         sprints,
         openSprints,
@@ -42,6 +44,7 @@
         issues: { data: Issue[] };
         members: { data: Member[] };
         labels: { data: Label[] };
+        epics: { data: Issue[] };
         sprint: { data: Sprint } | null;
         sprints: { data: Sprint[] };
         openSprints: { data: Sprint[] };
@@ -93,6 +96,7 @@
     };
     const tasksPerStatus = $derived(countBy(tasks, (task) => task.status_id));
     const tasksPerStory = $derived(countBy(tasks, (task) => task.parent_id));
+    const epicsById = $derived(new Map(epics.data.map((epic) => [epic.id, epic])));
     const storyNames = $derived(new Map(allStories.map((story) => [story.id, story.name])));
     const statusNames = $derived(new Map(statuses.map((status) => [status.id, status.name])));
 
@@ -233,6 +237,11 @@
             .map((issue) => (issue.parent_id === id ? { ...issue, parent_id: null } : issue));
 
     const handleIssueUpdated = (issue: Issue, sorts: Record<number, number> | null) => {
+        if (issue.role === 'epic') {
+            router.reload({ only: ['epics'] });
+            return;
+        }
+
         const existing = issues.data.find((candidate) => candidate.id === issue.id);
         const changesStructure = existing
             ? existing.sprint_id !== issue.sprint_id || existing.parent_id !== issue.parent_id
@@ -256,7 +265,9 @@
 
         echo.private(channelName)
             .listen('.issue.created', ({ issue }: { issue: Issue }) =>
-                derivesStoryView
+                issue.role === 'epic'
+                    ? router.reload({ only: ['epics'] })
+                    : derivesStoryView
                     ? refetchIssues()
                     : router.replaceProp('issues.data', (list: Issue[]) => upsertIssue(list, issue)),
             )
@@ -264,9 +275,11 @@
                 handleIssueUpdated(issue, sorts),
             )
             .listen('.issue.deleted', ({ id }: { id: number }) =>
-                derivesStoryView
-                    ? refetchIssues()
-                    : router.replaceProp('issues.data', (list: Issue[]) => withoutIssue(list, id)),
+                epicsById.has(id)
+                    ? router.reload({ only: ['epics', 'issues'] })
+                    : derivesStoryView
+                      ? refetchIssues()
+                      : router.replaceProp('issues.data', (list: Issue[]) => withoutIssue(list, id)),
             )
             .listen('.board.updated', () =>
                 router.reload({
@@ -375,6 +388,11 @@
         </div>
         <div class="flex items-center gap-2">
             {#if current.has_stories}
+                <Button variant="outline" size="sm" asChild>
+                    {#snippet children(props)}
+                        <Link {...props} href={epicsIndex(current.id)}>Epics</Link>
+                    {/snippet}
+                </Button>
                 <Button size="sm" variant="outline" onclick={() => openCreate('story')}>
                     <Plus class="size-4" /> New story
                 </Button>
@@ -443,7 +461,7 @@
                 {#each stories as story (story.id)}
                     <div class="flex items-start gap-1 bg-background p-2" data-story={story.id}>
                         <div class="min-w-0 flex-1">
-                            <IssueCard issue={story} />
+                            <IssueCard issue={story} epic={story.parent_id ? epicsById.get(story.parent_id) : undefined} />
                             {@render storyTaskCount(story)}
                         </div>
                         {@render addTaskButton(`Add task to ${story.name}`, story.id)}
@@ -517,6 +535,7 @@
         board={current}
         members={members.data}
         stories={allStories}
+        epics={epics.data}
         labels={labels.data}
         sprints={openSprints.data}
         sprintId={sprint && !sprint.data.closed_at ? sprint.data.id : undefined}
