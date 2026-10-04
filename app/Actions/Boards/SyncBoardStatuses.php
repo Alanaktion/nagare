@@ -4,6 +4,7 @@ namespace App\Actions\Boards;
 
 use App\Models\Board;
 use App\Models\Status;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class SyncBoardStatuses
 {
@@ -39,7 +40,8 @@ class SyncBoardStatuses
                 continue;
             }
 
-            $status = $existing[$data['id']]->fill($attributes);
+            $status = ($existing->get($data['id']) ?? throw (new ModelNotFoundException)->setModel(Status::class, [$data['id']]))
+                ->fill($attributes);
             $status->save();
 
             if ($status->wasChanged('is_closed')) {
@@ -51,11 +53,26 @@ class SyncBoardStatuses
             $target = isset($moves[$status->id]) ? $existing->get((int) $moves[$status->id]) : null;
 
             if ($target !== null) {
-                $status->issues()->each(fn ($issue) => $issue->update(['status_id' => $target->id]));
+                $this->moveIssues($status, $target);
             }
 
             $status->delete();
         }
+    }
+
+    /**
+     * Move every issue in one status to another, closing or reopening them
+     * to match the target status.
+     */
+    private function moveIssues(Status $from, Status $to): void
+    {
+        if ($to->is_closed) {
+            $from->issues()->whereNull('closed_at')->update(['closed_at' => now()]);
+        } else {
+            $from->issues()->update(['closed_at' => null]);
+        }
+
+        $from->issues()->update(['status_id' => $to->id]);
     }
 
     /**

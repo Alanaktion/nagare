@@ -7,6 +7,7 @@ use App\Models\Board;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class StoreSprintRequest extends FormRequest
@@ -16,7 +17,7 @@ class StoreSprintRequest extends FormRequest
         /** @var Board $board */
         $board = $this->route('board');
 
-        return $board->has_sprints && $this->user()->can('update', $board);
+        return $board->has_sprints && Gate::allows('update', $board);
     }
 
     /**
@@ -32,7 +33,7 @@ class StoreSprintRequest extends FormRequest
 
         return [
             'start_date' => ['required', 'date'],
-            'end_date' => $board->sprint_cycle === SprintCycle::Custom
+            'end_date' => $board->sprintCycle() === SprintCycle::Custom
                 ? ['required', 'date', 'after_or_equal:start_date']
                 : ['nullable', 'date'],
         ];
@@ -51,7 +52,8 @@ class StoreSprintRequest extends FormRequest
             /** @var Board $board */
             $board = $this->route('board');
             $start = Carbon::parse($this->input('start_date'));
-            $slug = $board->sprint_cycle->slugFor($board->sprint_cycle->periodFor($start)[0] ?? $start);
+            $cycle = $board->sprintCycle();
+            $slug = $cycle->slugFor($cycle->periodFor($start)[0] ?? $start);
 
             if ($board->sprints()->where('slug', $slug)->exists()) {
                 $validator->errors()->add('start_date', __('A sprint already exists for that period (:slug).', ['slug' => $slug]));

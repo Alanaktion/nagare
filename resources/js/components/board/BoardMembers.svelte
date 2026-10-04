@@ -37,14 +37,18 @@
     let memberToRemove = $state<Member>();
     let removeOpen = $state(false);
 
-    const changeRole = (member: Member, role: BoardRole) => {
+    const changeRole = (member: Member, select: HTMLSelectElement) => {
         roleError = undefined;
         router.put(
             update.url([board.id, member.id]),
-            { role },
+            { role: select.value as BoardRole },
             {
                 preserveScroll: true,
-                onError: (errors) => (roleError = errors.role),
+                onError: (errors) => {
+                    roleError = errors.role;
+                    // The role didn't change, so show the saved one again.
+                    select.value = member.role ?? 'member';
+                },
             },
         );
     };
@@ -107,7 +111,7 @@
                         class={selectClass}
                         aria-label="Role of {member.name}"
                         value={member.role}
-                        onchange={(event) => changeRole(member, event.currentTarget.value as BoardRole)}
+                        onchange={(event) => changeRole(member, event.currentTarget)}
                     >
                         <option value="member">Member</option>
                         <option value="admin">Admin</option>

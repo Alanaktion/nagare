@@ -236,6 +236,19 @@ describe('assigning issues to sprints', function () {
         }
     });
 
+    test('an issue in a closed sprint can be edited without leaving it', function () {
+        $closed = Sprint::factory()->for($this->board)->between(today()->subDays(30), today()->subDays(20))->closed()->create();
+        $otherClosed = Sprint::factory()->for($this->board)->between(today()->subDays(60), today()->subDays(40))->closed()->create();
+        $this->issue->update(['sprint_id' => $closed->id]);
+
+        $this->put(route('issues.update', $this->issue), ['name' => 'Renamed', 'sprint_id' => $closed->id])
+            ->assertSessionHasNoErrors();
+        $this->put(route('issues.update', $this->issue), ['sprint_id' => $otherClosed->id])
+            ->assertSessionHasErrors('sprint_id');
+
+        expect($this->issue->fresh())->name->toBe('Renamed')->sprint_id->toBe($closed->id);
+    });
+
     test('boards without sprints reject a sprint', function () {
         $plain = Board::factory()->withDefaultStatuses()->withMember($this->user)->create();
 

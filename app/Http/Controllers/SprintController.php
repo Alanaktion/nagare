@@ -7,6 +7,8 @@ use App\Actions\Sprints\CreateSprint;
 use App\Http\Requests\Sprints\StoreSprintRequest;
 use App\Models\Board;
 use App\Models\Sprint;
+use App\Models\User;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -23,11 +25,11 @@ class SprintController extends Controller
         return to_route('boards.sprints.show', [$board, $sprint]);
     }
 
-    public function show(Board $board, Sprint $sprint, ShowBoard $showBoard): Response
+    public function show(#[CurrentUser] User $user, Board $board, Sprint $sprint, ShowBoard $showBoard): Response
     {
         Gate::authorize('view', $board);
         abort_unless($board->has_sprints, 404);
 
-        return $showBoard->handle($board, $sprint);
+        return $showBoard->handle($board, $user, $sprint);
     }
 }

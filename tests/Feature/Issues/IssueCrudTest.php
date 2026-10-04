@@ -33,6 +33,16 @@ test('non-members cannot create, view, update or delete issues', function () {
     expect($this->board->issues()->count())->toBe(1)->and($issue->fresh()->name)->not->toBe('x');
 });
 
+test('issues on a deleted board cannot be viewed or changed', function () {
+    $issue = Issue::factory()->inStatus($this->todo)->create();
+    $this->board->delete();
+    $this->actingAs($this->user);
+
+    $this->get(route('issues.show', $issue))->assertForbidden();
+    $this->put(route('issues.update', $issue), ['name' => 'x'])->assertForbidden();
+    $this->delete(route('issues.destroy', $issue))->assertForbidden();
+});
+
 test('the board page includes its issues and members', function () {
     $issue = Issue::factory()->inStatus($this->todo)->create(['assigned_id' => $this->user->id]);
     Issue::factory()->create();

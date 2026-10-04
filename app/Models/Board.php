@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BoardRole;
 use App\Enums\SprintCycle;
+use Carbon\CarbonImmutable;
 use Database\Factories\BoardFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -14,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
@@ -23,9 +23,9 @@ use Illuminate\Support\Carbon;
  * @property bool $has_sprints
  * @property SprintCycle|null $sprint_cycle
  * @property int|null $created_by
- * @property Carbon|null $created_at
- * @property Carbon|null $updated_at
- * @property Carbon|null $deleted_at
+ * @property CarbonImmutable|null $created_at
+ * @property CarbonImmutable|null $updated_at
+ * @property CarbonImmutable|null $deleted_at
  */
 #[Fillable(['name', 'has_stories', 'has_sprints', 'sprint_cycle'])]
 class Board extends Model
@@ -45,6 +45,15 @@ class Board extends Model
             'has_sprints' => 'boolean',
             'sprint_cycle' => SprintCycle::class,
         ];
+    }
+
+    /**
+     * The board's sprint cycle. Sprint boards always have one; treating a
+     * missing cycle as custom means sprints are never created automatically.
+     */
+    public function sprintCycle(): SprintCycle
+    {
+        return $this->sprint_cycle ?? SprintCycle::Custom;
     }
 
     /**

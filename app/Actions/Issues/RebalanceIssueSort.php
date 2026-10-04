@@ -3,6 +3,7 @@
 namespace App\Actions\Issues;
 
 use App\Models\Issue;
+use Illuminate\Support\Facades\DB;
 
 class RebalanceIssueSort
 {
@@ -34,9 +35,14 @@ class RebalanceIssueSort
         $position = 1;
 
         foreach ($column->keys() as $id) {
-            Issue::query()->whereKey($id)->toBase()->update(['sort' => $position]);
             $renumbered[$id] = (float) $position++;
         }
+
+        DB::transaction(function () use ($renumbered): void {
+            foreach ($renumbered as $id => $sort) {
+                Issue::query()->whereKey($id)->toBase()->update(['sort' => $sort]);
+            }
+        });
 
         return $renumbered;
     }

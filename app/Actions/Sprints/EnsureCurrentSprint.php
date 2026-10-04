@@ -17,15 +17,17 @@ class EnsureCurrentSprint
     public function handle(Board $board): ?Sprint
     {
         $current = $board->currentSprint();
+        $cycle = $board->sprintCycle();
+        $period = $cycle->periodFor(today());
 
-        if ($current !== null || ! $board->has_sprints || ! $board->sprint_cycle?->isAutomatic()) {
+        if ($current !== null || ! $board->has_sprints || $period === null) {
             return $current;
         }
 
-        [$start, $end] = $board->sprint_cycle->periodFor(today());
+        [$start, $end] = $period;
 
         $sprint = $board->sprints()->firstOrCreate(
-            ['slug' => $board->sprint_cycle->slugFor($start)],
+            ['slug' => $cycle->slugFor($start)],
             ['start_date' => $start, 'end_date' => $end],
         );
 

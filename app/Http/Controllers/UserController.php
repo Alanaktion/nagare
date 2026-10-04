@@ -7,6 +7,7 @@ use App\Http\Resources\IssueResource;
 use App\Http\Resources\UserResource;
 use App\Models\Issue;
 use App\Models\User;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,10 +33,8 @@ class UserController extends Controller
      * Show a user's profile: the boards and assigned issues they share with
      * the current user. Your own profile shows all of your boards.
      */
-    public function show(Request $request, User $user): Response
+    public function show(#[CurrentUser] User $viewer, User $user): Response
     {
-        $viewer = $request->user();
-
         $boards = $user->boards()
             ->when(! $viewer->is($user), fn ($boards) => $boards->forMember($viewer))
             ->orderBy('name')

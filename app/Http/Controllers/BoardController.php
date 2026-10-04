@@ -14,6 +14,7 @@ use App\Http\Resources\BoardResource;
 use App\Http\Resources\UserResource;
 use App\Models\Board;
 use App\Models\User;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,10 +26,8 @@ class BoardController extends Controller
     /**
      * List the user's boards, plus deleted boards they can restore.
      */
-    public function index(Request $request): Response
+    public function index(#[CurrentUser] User $user): Response
     {
-        $user = $request->user();
-
         return Inertia::render('boards/Index', [
             'boards' => BoardResource::collection(
                 $user->boards()->orderBy('name')->get()
@@ -49,9 +48,9 @@ class BoardController extends Controller
         return Inertia::render('boards/Create');
     }
 
-    public function store(StoreBoardRequest $request, CreateBoard $createBoard): RedirectResponse
+    public function store(StoreBoardRequest $request, #[CurrentUser] User $user, CreateBoard $createBoard): RedirectResponse
     {
-        $board = $createBoard->handle($request->user(), $request->validated());
+        $board = $createBoard->handle($user, $request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Board created.')]);
 
@@ -62,12 +61,12 @@ class BoardController extends Controller
      * Show a board. Boards with sprints open on the current sprint, or on
      * the backlog when there isn't one. `?closed=all` includes older closed issues.
      */
-    public function show(Request $request, Board $board, EnsureCurrentSprint $ensureCurrentSprint, ShowBoard $showBoard): Response|RedirectResponse
+    public function show(Request $request, #[CurrentUser] User $user, Board $board, EnsureCurrentSprint $ensureCurrentSprint, ShowBoard $showBoard): Response|RedirectResponse
     {
         Gate::authorize('view', $board);
 
         if (! $board->has_sprints) {
-            return $showBoard->handle($board, withOlderClosed: $request->query('closed') === 'all');
+            return $showBoard->handle($board, $user, withOlderClosed: $request->query('closed') === 'all');
         }
 
         $current = $ensureCurrentSprint->handle($board);
@@ -77,16 +76,16 @@ class BoardController extends Controller
             : to_route('boards.backlog', $board);
     }
 
-    public function edit(Request $request, Board $board): Response
+    public function edit(Request $request, #[CurrentUser] User $user, Board $board): Response
     {
         Gate::authorize('update', $board);
 
         return Inertia::render('boards/Edit', [
             'board' => new BoardResource(
-                $board->load(['statuses' => fn ($statuses) => $statuses->withCount('issues')])->withRoleFor($request->user())
+                $board->load(['statuses' => fn ($statuses) => $statuses->withCount('issues')])->withRoleFor($user)
             ),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
-            'candidates' => Inertia::optional(fn () => $request->user()->can('manageMembers', $board)
+            'candidates' => Inertia::optional(fn () => $user->can('manageMembers', $board)
                 ? UserResource::collection(
                     User::query()
                         ->whereDoesntHave('boards', fn ($boards) => $boards->whereKey($board->id))

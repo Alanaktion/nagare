@@ -5,13 +5,14 @@ namespace App\Http\Requests\Sprints;
 use App\Models\Sprint;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class CloseSprintRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('board'));
+        return Gate::allows('update', $this->route('board'));
     }
 
     /**

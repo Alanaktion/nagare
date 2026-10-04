@@ -9,6 +9,7 @@ use App\Http\Resources\SprintResource;
 use App\Http\Resources\UserResource;
 use App\Models\Board;
 use App\Models\Sprint;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,7 +29,7 @@ class ShowBoard
      * Kanban boards and backlogs grow forever, so they leave out tasks closed
      * more than `CLOSED_ISSUE_DAYS` ago unless `$withOlderClosed` is set.
      */
-    public function handle(Board $board, ?Sprint $sprint = null, bool $withOlderClosed = false): Response
+    public function handle(Board $board, User $viewer, ?Sprint $sprint = null, bool $withOlderClosed = false): Response
     {
         $issues = $board->issues()->with('assignee')->withCount('children')->orderBy('sort');
 
@@ -55,7 +56,7 @@ class ShowBoard
         }
 
         return Inertia::render('boards/Show', [
-            'board' => new BoardResource($board->load('statuses')->withRoleFor(auth()->user())),
+            'board' => new BoardResource($board->load('statuses')->withRoleFor($viewer)),
             'issues' => IssueResource::collection($issues->get()),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
             'sprint' => $sprint ? new SprintResource($sprint) : null,

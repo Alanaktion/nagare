@@ -194,6 +194,12 @@
             : merged;
     };
 
+    // Deleting a story leaves its tasks without one, as the server does.
+    const withoutIssue = (list: Issue[], id: number) =>
+        list
+            .filter((issue) => issue.id !== id)
+            .map((issue) => (issue.parent_id === id ? { ...issue, parent_id: null } : issue));
+
     const handleIssueUpdated = (issue: Issue, sorts: Record<number, number> | null) => {
         const existing = issues.data.find((candidate) => candidate.id === issue.id);
         const changesStructure = existing
@@ -223,7 +229,7 @@
             .listen('.issue.deleted', ({ id }: { id: number }) =>
                 derivesStoryView
                     ? refetchIssues()
-                    : router.replaceProp('issues.data', (list: Issue[]) => list.filter((issue) => issue.id !== id)),
+                    : router.replaceProp('issues.data', (list: Issue[]) => withoutIssue(list, id)),
             )
             .listen('.board.updated', () =>
                 router.reload({

@@ -6,6 +6,7 @@ use App\Concerns\BoardValidationRules;
 use App\Models\Board;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Validator;
 
 class UpdateBoardRequest extends FormRequest
@@ -14,7 +15,7 @@ class UpdateBoardRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('board'));
+        return Gate::allows('update', $this->route('board'));
     }
 
     protected function prepareForValidation(): void

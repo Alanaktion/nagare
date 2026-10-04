@@ -19,12 +19,13 @@ class CreateSprint
      */
     public function handle(Board $board, array $data): Sprint
     {
-        $period = $board->sprint_cycle?->periodFor(Carbon::parse((string) $data['start_date']));
+        $cycle = $board->sprintCycle();
+        $period = $cycle->periodFor(Carbon::parse((string) $data['start_date']));
         $start = $period[0] ?? Carbon::parse((string) $data['start_date']);
         $end = $period[1] ?? Carbon::parse((string) $data['end_date']);
 
         $sprint = $board->sprints()->create([
-            'slug' => $board->sprint_cycle->slugFor($start),
+            'slug' => $cycle->slugFor($start),
             'start_date' => $start,
             'end_date' => $end,
         ]);

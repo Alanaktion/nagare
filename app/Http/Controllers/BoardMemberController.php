@@ -10,8 +10,8 @@ use App\Http\Requests\Boards\StoreBoardMemberRequest;
 use App\Http\Requests\Boards\UpdateBoardMemberRequest;
 use App\Models\Board;
 use App\Models\User;
+use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
@@ -20,7 +20,7 @@ class BoardMemberController extends Controller
     public function store(StoreBoardMemberRequest $request, Board $board, AddBoardMember $addMember): RedirectResponse
     {
         $user = User::findOrFail($request->integer('user_id'));
-        $addMember->handle($board, $user, $request->enum('role', BoardRole::class));
+        $addMember->handle($board, $user, BoardRole::from($request->string('role')->value()));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name added to the board.', ['name' => $user->name])]);
 
@@ -31,7 +31,7 @@ class BoardMemberController extends Controller
     {
         abort_unless($board->roleFor($member) !== null, 404);
 
-        $changeRole->handle($board, $member, $request->enum('role', BoardRole::class));
+        $changeRole->handle($board, $member, BoardRole::from($request->string('role')->value()));
 
         return back();
     }
@@ -39,14 +39,14 @@ class BoardMemberController extends Controller
     /**
      * Remove a member, or let the current user leave the board.
      */
-    public function destroy(Request $request, Board $board, User $member, RemoveBoardMember $removeMember): RedirectResponse
+    public function destroy(#[CurrentUser] User $user, Board $board, User $member, RemoveBoardMember $removeMember): RedirectResponse
     {
         Gate::authorize('removeMember', [$board, $member]);
         abort_unless($board->roleFor($member) !== null, 404);
 
         $removeMember->handle($board, $member);
 
-        if ($request->user()->is($member)) {
+        if ($user->is($member)) {
             Inertia::flash('toast', ['type' => 'success', 'message' => __('You left :board.', ['board' => $board->name])]);
 
             return to_route('boards.index');

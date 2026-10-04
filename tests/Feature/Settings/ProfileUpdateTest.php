@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\BoardRole;
+use App\Models\Board;
 use App\Models\User;
 
 test('profile page is displayed', function () {
@@ -65,6 +67,27 @@ test('user can delete their account', function () {
 
     $this->assertGuest();
     expect($user->fresh())->toBeNull();
+});
+
+test('deleting an account hands boards to another member instead of leaving them without an admin', function () {
+    $user = User::factory()->create();
+    $longest = User::factory()->create();
+    $newer = User::factory()->create();
+    $otherAdmin = User::factory()->create();
+
+    $shared = Board::factory()->withAdmin($user)->withMember($longest)->create();
+    $this->travel(1)->minute();
+    $shared->users()->attach($newer, ['role' => BoardRole::Member->value]);
+    $solo = Board::factory()->withAdmin($user)->create();
+    $coAdmined = Board::factory()->withAdmin($user)->withAdmin($otherAdmin)->withMember($longest)->create();
+
+    $this->actingAs($user)->delete(route('profile.destroy'), ['password' => 'password'])->assertSessionHasNoErrors();
+
+    expect($shared->roleFor($longest))->toBe(BoardRole::Admin)
+        ->and($shared->roleFor($newer))->toBe(BoardRole::Member)
+        ->and($solo->fresh()->trashed())->toBeTrue()
+        ->and($coAdmined->roleFor($longest))->toBe(BoardRole::Member)
+        ->and($coAdmined->fresh()->trashed())->toBeFalse();
 });
 
 test('correct password must be provided to delete account', function () {

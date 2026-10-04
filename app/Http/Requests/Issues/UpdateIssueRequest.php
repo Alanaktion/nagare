@@ -6,6 +6,7 @@ use App\Concerns\IssueValidationRules;
 use App\Models\Issue;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class UpdateIssueRequest extends FormRequest
 {
@@ -13,7 +14,7 @@ class UpdateIssueRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user()->can('update', $this->route('issue'));
+        return Gate::allows('update', $this->route('issue'));
     }
 
     /**
@@ -26,6 +27,6 @@ class UpdateIssueRequest extends FormRequest
         /** @var Issue $issue */
         $issue = $this->route('issue');
 
-        return $this->issueRules($issue->board, $issue->role, partial: true);
+        return $this->issueRules($issue->board ?? abort(404), $issue->role, partial: true, currentSprintId: $issue->sprint_id);
     }
 }
