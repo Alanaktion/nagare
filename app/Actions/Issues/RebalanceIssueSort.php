@@ -14,8 +14,10 @@ class RebalanceIssueSort
     /**
      * Renumber a status column as 1, 2, 3... when fractional sorting has
      * left two neighbours too close together (or equal), keeping the order.
+     *
+     * @return array<int, float>|null The new sort value of every issue in the column, or null if nothing changed.
      */
-    public function handle(int $boardId, int $statusId): void
+    public function handle(int $boardId, int $statusId): ?array
     {
         $column = Issue::query()
             ->where('board_id', $boardId)
@@ -25,14 +27,18 @@ class RebalanceIssueSort
             ->pluck('sort', 'id');
 
         if (! $this->isCrowded($column->values()->all())) {
-            return;
+            return null;
         }
 
+        $renumbered = [];
         $position = 1;
 
         foreach ($column->keys() as $id) {
-            Issue::query()->whereKey($id)->toBase()->update(['sort' => $position++]);
+            Issue::query()->whereKey($id)->toBase()->update(['sort' => $position]);
+            $renumbered[$id] = (float) $position++;
         }
+
+        return $renumbered;
     }
 
     /**

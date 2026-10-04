@@ -2,6 +2,7 @@
 
 namespace App\Actions\Boards;
 
+use App\Events\BoardUpdated;
 use App\Models\Board;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,8 @@ class UpdateBoard
         return DB::transaction(function () use ($board, $data): Board {
             $board->update($data);
             $this->syncStatuses->handle($board, $data['statuses'], $data['status_moves'] ?? []);
+
+            BoardUpdated::dispatch($board->id);
 
             return $board;
         });

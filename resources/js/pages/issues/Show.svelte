@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { Form, Link, setLayoutProps } from '@inertiajs/svelte';
+    import { Form, Link, router, setLayoutProps } from '@inertiajs/svelte';
+    import { onMount } from 'svelte';
     import { destroy } from '@/actions/App/Http/Controllers/IssueController';
     import AppHead from '@/components/AppHead.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
@@ -14,6 +15,7 @@
         DialogFooter,
         DialogTitle,
     } from '@/components/ui/dialog';
+    import { getEcho } from '@/lib/echo';
     import { cn } from '@/lib/utils';
     import { index, show as showBoard } from '@/routes/boards';
     import { show } from '@/routes/issues';
@@ -35,6 +37,28 @@
 
     const current = $derived(issue.data);
     const status = $derived(board.data.statuses?.find((s) => s.id === current.status_id));
+
+    // Show other people's edits live; the server doesn't echo our own back.
+    onMount(() => {
+        const channelName = `boards.${board.data.id}`;
+
+        getEcho()
+            .private(channelName)
+            .listen('.issue.updated', ({ issue: updated }: { issue: Issue }) => {
+                if (updated.id === current.id) {
+                    router.replaceProp('issue.data', updated);
+                }
+            })
+            .listen('.issue.deleted', ({ id }: { id: number }) => {
+                if (id === current.id) {
+                    router.visit(showBoard(board.data.id));
+                }
+            })
+            .listen('.board.updated', () => router.reload({ only: ['board', 'members', 'stories'] }))
+            .listen('.board.deleted', () => router.visit(index()));
+
+        return () => getEcho().leave(channelName);
+    });
 
     let editOpen = $state(false);
     let deleteOpen = $state(false);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Issues\CreateIssue;
+use App\Actions\Issues\DeleteIssue;
 use App\Actions\Issues\UpdateIssue;
 use App\Http\Requests\Issues\StoreIssueRequest;
 use App\Http\Requests\Issues\UpdateIssueRequest;
@@ -56,11 +57,11 @@ class IssueController extends Controller
         return back();
     }
 
-    public function destroy(Issue $issue): RedirectResponse
+    public function destroy(Issue $issue, DeleteIssue $deleteIssue): RedirectResponse
     {
         Gate::authorize('delete', $issue);
 
-        $issue->delete();
+        $deleteIssue->handle($issue);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Issue deleted.')]);
 

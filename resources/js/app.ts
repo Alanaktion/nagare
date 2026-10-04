@@ -1,7 +1,8 @@
-import { createInertiaApp } from '@inertiajs/svelte';
+import { createInertiaApp, http } from '@inertiajs/svelte';
 import AppLayout from '@/layouts/AppLayout.svelte';
 import AuthLayout from '@/layouts/AuthLayout.svelte';
 import SettingsLayout from '@/layouts/settings/Layout.svelte';
+import { currentSocketId } from '@/lib/echo';
 import { initializeFlashToast } from '@/lib/flash-toast';
 import { initializeTheme } from '@/lib/theme.svelte';
 
@@ -31,3 +32,13 @@ initializeTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
+
+// Tell the server which realtime connection a request came from, so it can
+// skip broadcasting the change back to this tab...
+http.onRequest((config) => {
+    const socketId = currentSocketId();
+    if (socketId) {
+        config.headers = { ...config.headers, 'X-Socket-ID': socketId };
+    }
+    return config;
+});

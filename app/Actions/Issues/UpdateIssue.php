@@ -2,6 +2,7 @@
 
 namespace App\Actions\Issues;
 
+use App\Events\IssueUpdated;
 use App\Models\Issue;
 
 class UpdateIssue
@@ -19,9 +20,11 @@ class UpdateIssue
     {
         $issue->update($data);
 
-        if ($issue->wasChanged(['sort', 'status_id'])) {
-            $this->rebalanceSort->handle($issue->board_id, $issue->status_id);
-        }
+        $renumbered = $issue->wasChanged(['sort', 'status_id'])
+            ? $this->rebalanceSort->handle($issue->board_id, $issue->status_id)
+            : null;
+
+        IssueUpdated::dispatch($issue, $renumbered);
 
         return $issue;
     }

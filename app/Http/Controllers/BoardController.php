@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Boards\CreateBoard;
 use App\Actions\Boards\UpdateBoard;
 use App\Enums\BoardRole;
+use App\Events\BoardDeleted;
 use App\Http\Requests\Boards\StoreBoardRequest;
 use App\Http\Requests\Boards\UpdateBoardRequest;
 use App\Http\Resources\BoardResource;
@@ -91,6 +92,8 @@ class BoardController extends Controller
         Gate::authorize('delete', $board);
 
         $board->delete();
+
+        BoardDeleted::dispatch($board->id);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Board deleted.')]);
 

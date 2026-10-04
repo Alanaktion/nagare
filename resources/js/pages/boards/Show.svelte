@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Link, router, setLayoutProps } from '@inertiajs/svelte';
+    import { onMount } from 'svelte';
     import Plus from '@lucide/svelte/icons/plus';
     import Settings from '@lucide/svelte/icons/settings';
     import { dndzone, setKeyboardDragTrigger, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
@@ -8,6 +9,7 @@
     import IssueCard from '@/components/board/IssueCard.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
     import { Button } from '@/components/ui/button';
+    import { getEcho } from '@/lib/echo';
     import { sortBetween } from '@/lib/sort';
     import { edit, index, show } from '@/routes/boards';
     import type { Board, Issue, IssueRole, Member } from '@/types';
@@ -43,7 +45,10 @@
 
     const buildZones = () => {
         const built: Record<string, Issue[]> = {};
-        for (const issue of current.has_stories ? tasks : issues.data) {
+        const ordered = [...(current.has_stories ? tasks : issues.data)].sort(
+            (a, b) => a.sort - b.sort || a.id - b.id,
+        );
+        for (const issue of ordered) {
             (built[zoneKey(issue.status_id, issue.parent_id)] ??= []).push(issue);
         }
         return built;
@@ -120,6 +125,42 @@
                 only: ['issues'],
             });
     };
+
+    // Apply other people's changes straight to the page props, so the board
+    // updates live without a request. Only changes made in other tabs or by
+    // other users arrive here; the server skips the sender.
+    const upsertIssue = (list: Issue[], issue: Issue, sorts?: Record<number, number> | null) => {
+        const exists = list.some((existing) => existing.id === issue.id);
+        const merged = exists
+            ? list.map((existing) => (existing.id === issue.id ? issue : existing))
+            : [...list, issue];
+
+        return sorts
+            ? merged.map((existing) => (existing.id in sorts ? { ...existing, sort: sorts[existing.id] } : existing))
+            : merged;
+    };
+
+    onMount(() => {
+        const channelName = `boards.${current.id}`;
+
+        getEcho()
+            .private(channelName)
+            .listen('.issue.created', ({ issue }: { issue: Issue }) =>
+                router.replaceProp('issues.data', (list: Issue[]) => upsertIssue(list, issue)),
+            )
+            .listen('.issue.updated', ({ issue, sorts }: { issue: Issue; sorts: Record<number, number> | null }) =>
+                router.replaceProp('issues.data', (list: Issue[]) => upsertIssue(list, issue, sorts)),
+            )
+            .listen('.issue.deleted', ({ id }: { id: number }) =>
+                router.replaceProp('issues.data', (list: Issue[]) => list.filter((issue) => issue.id !== id)),
+            )
+            .listen('.board.updated', () =>
+                router.reload({ only: ['board', 'issues', 'members'] }),
+            )
+            .listen('.board.deleted', () => router.visit(index()));
+
+        return () => getEcho().leave(channelName);
+    });
 
     let dialogOpen = $state(false);
     let dialogKey = $state(0);

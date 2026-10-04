@@ -2,6 +2,7 @@
 
 namespace App\Actions\Issues;
 
+use App\Events\IssueCreated;
 use App\Models\Board;
 use App\Models\Issue;
 use App\Models\User;
@@ -26,6 +27,8 @@ class CreateIssue
         $issue->status_id = $statusId;
         $issue->sort = ($lastSort ?? 0) + 1;
         $issue->save();
+
+        IssueCreated::dispatch($issue);
 
         return $issue;
     }
