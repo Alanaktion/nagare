@@ -47,10 +47,15 @@
 
     // Show other people's edits live; the server doesn't echo our own back.
     onMount(() => {
+        const echo = getEcho();
+
+        if (!echo) {
+            return;
+        }
+
         const channelName = `boards.${board.data.id}`;
 
-        getEcho()
-            .private(channelName)
+        echo.private(channelName)
             .listen('.issue.updated', ({ issue: updated }: { issue: Issue }) => {
                 if (updated.id === current.id) {
                     router.replaceProp('issue.data', updated);
@@ -64,7 +69,7 @@
             .listen('.board.updated', () => router.reload({ only: ['issue', 'board', 'members', 'labels', 'stories', 'openSprints'] }))
             .listen('.board.deleted', () => router.visit(index()));
 
-        return () => getEcho().leave(channelName);
+        return () => echo.leave(channelName);
     });
 
     let editOpen = $state(false);

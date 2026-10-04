@@ -26,12 +26,24 @@ const xsrfToken = () =>
     );
 
 /**
- * The shared Echo connection, created on first use.
+ * Whether realtime updates are set up. Without a Reverb app key the app
+ * works as usual, but changes made by other people show up on the next
+ * page load instead of live.
+ */
+export const isRealtimeEnabled = Boolean(import.meta.env.VITE_REVERB_APP_KEY);
+
+/**
+ * The shared Echo connection, created on first use, or null when realtime
+ * isn't configured.
  *
  * Channel authorization reads the XSRF cookie on every request, so it
  * keeps working after the session token is regenerated.
  */
-export function getEcho(): Echo<'reverb'> {
+export function getEcho(): Echo<'reverb'> | null {
+    if (!isRealtimeEnabled) {
+        return null;
+    }
+
     if (echo) {
         return echo;
     }

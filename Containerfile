@@ -2,7 +2,7 @@ FROM ghcr.io/serversideup/php:8.5-frankenphp AS base
 
 USER root
 
-RUN install-php-extensions intl sockets imagick
+RUN install-php-extensions intl sockets imagick gd
 
 USER www-data
 

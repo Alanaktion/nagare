@@ -19,7 +19,11 @@ services:
             - REVERB_PUBLISH_HOST=reverb
             - REVERB_PUBLISH_PORT=8000
             - REVERB_PUBLISH_SCHEME=http
-            # Search service, used when SCOUT_DRIVER=typesense
+            # Services of the recommended stack, used when .env selects them
+            # (DB_CONNECTION=pgsql, QUEUE_CONNECTION=redis, SCOUT_DRIVER=typesense)
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - REDIS_HOST=valkey
             - TYPESENSE_HOST=typesense
             - TYPESENSE_PORT=8108
             - TYPESENSE_PROTOCOL=http
@@ -50,7 +54,11 @@ services:
             - REVERB_PUBLISH_HOST=reverb
             - REVERB_PUBLISH_PORT=8000
             - REVERB_PUBLISH_SCHEME=http
-            # Search service, used when SCOUT_DRIVER=typesense
+            # Services of the recommended stack, used when .env selects them
+            # (DB_CONNECTION=pgsql, QUEUE_CONNECTION=redis, SCOUT_DRIVER=typesense)
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - REDIS_HOST=valkey
             - TYPESENSE_HOST=typesense
             - TYPESENSE_PORT=8108
             - TYPESENSE_PROTOCOL=http
@@ -68,6 +76,9 @@ services:
         env_file: .env
         environment:
             - PHP_OPCACHE_ENABLE=1
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - REDIS_HOST=valkey
         command: ['php', '/var/www/html/artisan', 'schedule:work']
         stop_signal: SIGTERM
         healthcheck:
@@ -75,6 +86,42 @@ services:
             start_period: 10s
         volumes:
             - .:/var/www/html
+    # PostgreSQL, the recommended database. Only used when .env sets
+    # DB_CONNECTION=pgsql; the app and its workers reach it as `postgres`. The
+    # credentials come from DB_DATABASE, DB_USERNAME and DB_PASSWORD in .env
+    # (these defaults are for local use; set a real password anywhere else).
+    postgres:
+        image: postgres:17-alpine
+        restart: always
+        environment:
+            - POSTGRES_DB=${DB_DATABASE:-nagare}
+            - POSTGRES_USER=${DB_USERNAME:-nagare}
+            - POSTGRES_PASSWORD=${DB_PASSWORD:-nagare}
+        volumes:
+            - postgres-data:/var/lib/postgresql/data
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}',
+                ]
+            interval: 10s
+            timeout: 3s
+            retries: 5
+            start_period: 10s
+    # Valkey (Redis-compatible), the recommended queue backend. Only used when
+    # .env sets QUEUE_CONNECTION=redis; the app and its workers reach it as `valkey`.
+    valkey:
+        image: valkey/valkey:8-alpine
+        restart: always
+        command: ['valkey-server', '--appendonly', 'yes']
+        volumes:
+            - valkey-data:/data
+        healthcheck:
+            test: ['CMD', 'valkey-cli', 'ping']
+            interval: 10s
+            timeout: 3s
+            retries: 5
     # Search engine for Scout. It is only used when SCOUT_DRIVER=typesense;
     # the default database engine needs no service. The API key comes from
     # TYPESENSE_API_KEY in .env (the default matches config/scout.php, so set
@@ -98,4 +145,6 @@ services:
             retries: 5
             start_period: 10s
 volumes:
+    postgres-data:
+    valkey-data:
     typesense-data:

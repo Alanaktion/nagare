@@ -246,10 +246,15 @@
     };
 
     onMount(() => {
+        const echo = getEcho();
+
+        if (!echo) {
+            return;
+        }
+
         const channelName = `boards.${current.id}`;
 
-        getEcho()
-            .private(channelName)
+        echo.private(channelName)
             .listen('.issue.created', ({ issue }: { issue: Issue }) =>
                 derivesStoryView
                     ? refetchIssues()
@@ -270,7 +275,7 @@
             )
             .listen('.board.deleted', () => router.visit(index()));
 
-        return () => getEcho().leave(channelName);
+        return () => echo.leave(channelName);
     });
 
     let dialogOpen = $state(false);

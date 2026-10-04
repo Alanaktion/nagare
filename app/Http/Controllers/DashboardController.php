@@ -24,8 +24,7 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'boards' => BoardResource::collection(
                 $user->boards()
-                    ->withMax('issues', 'updated_at')
-                    ->orderByDesc('issues_max_updated_at')
+                    ->orderByRaw("coalesce((select max(issues.updated_at) from issues where issues.board_id = boards.id), '1970-01-01') desc")
                     ->orderBy('name')
                     ->limit(6)
                     ->get()
