@@ -56,6 +56,30 @@ class Board extends Model
     }
 
     /**
+     * @return HasMany<Sprint, $this>
+     */
+    public function sprints(): HasMany
+    {
+        return $this->hasMany(Sprint::class)->orderBy('start_date');
+    }
+
+    /**
+     * The open sprint that covers today, if any. If several overlap, the
+     * one that started most recently wins.
+     */
+    public function currentSprint(): ?Sprint
+    {
+        $today = today()->toDateString();
+
+        return $this->sprints()
+            ->reorder('start_date', 'desc')
+            ->whereNull('closed_at')
+            ->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today)
+            ->first();
+    }
+
+    /**
      * @return HasMany<Issue, $this>
      */
     public function issues(): HasMany

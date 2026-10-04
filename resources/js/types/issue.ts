@@ -11,11 +11,14 @@ export type Issue = {
     id: number;
     board_id: number;
     status_id: number;
+    sprint_id: number | null;
     parent_id: number | null;
     role: IssueRole;
     name: string;
     description: string | null;
     sort: number;
+    /** Number of tasks under a story, across all sprints. */
+    children_count?: number;
     author_id: number | null;
     assigned_id: number | null;
     assignee?: Member | null;

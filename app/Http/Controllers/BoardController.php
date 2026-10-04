@@ -3,14 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Boards\CreateBoard;
+use App\Actions\Boards\ShowBoard;
 use App\Actions\Boards\UpdateBoard;
+use App\Actions\Sprints\EnsureCurrentSprint;
 use App\Enums\BoardRole;
 use App\Events\BoardDeleted;
 use App\Http\Requests\Boards\StoreBoardRequest;
 use App\Http\Requests\Boards\UpdateBoardRequest;
 use App\Http\Resources\BoardResource;
-use App\Http\Resources\IssueResource;
-use App\Http\Resources\UserResource;
 use App\Models\Board;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -56,17 +56,23 @@ class BoardController extends Controller
         return to_route('boards.show', $board);
     }
 
-    public function show(Board $board): Response
+    /**
+     * Show a board. Boards with sprints open on the current sprint, or on
+     * the backlog when there isn't one.
+     */
+    public function show(Board $board, EnsureCurrentSprint $ensureCurrentSprint, ShowBoard $showBoard): Response|RedirectResponse
     {
         Gate::authorize('view', $board);
 
-        return Inertia::render('boards/Show', [
-            'board' => new BoardResource($board->load('statuses')),
-            'issues' => IssueResource::collection(
-                $board->issues()->with('assignee')->orderBy('sort')->get()
-            ),
-            'members' => UserResource::collection($board->users()->orderBy('name')->get()),
-        ]);
+        if (! $board->has_sprints) {
+            return $showBoard->handle($board);
+        }
+
+        $current = $ensureCurrentSprint->handle($board);
+
+        return $current
+            ? to_route('boards.sprints.show', [$board, $current])
+            : to_route('boards.backlog', $board);
     }
 
     public function edit(Board $board): Response

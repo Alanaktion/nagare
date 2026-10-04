@@ -6,6 +6,8 @@ use App\Enums\IssueRole;
 use Carbon\CarbonInterface;
 use Database\Factories\IssueFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $board_id
  * @property int $status_id
+ * @property int|null $sprint_id
  * @property int|null $parent_id
  * @property IssueRole $role
  * @property int|null $author_id
@@ -29,7 +32,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  */
-#[Fillable(['status_id', 'parent_id', 'role', 'assigned_id', 'name', 'description', 'sort'])]
+#[Fillable(['status_id', 'sprint_id', 'parent_id', 'role', 'assigned_id', 'name', 'description', 'sort'])]
 class Issue extends Model
 {
     /** @use HasFactory<IssueFactory> */
@@ -72,6 +75,39 @@ class Issue extends Model
     }
 
     /**
+     * Issues shown on a sprint's board, or on the backlog when `$sprintId` is null.
+     *
+     * Tasks (and any issue that isn't a story) are shown when they are in the
+     * sprint. A story is shown when it is assigned to the sprint itself or has
+     * a task in it, so a story spanning several sprints appears in each. On
+     * the backlog, a story is shown when it has a task there, or when it has
+     * no sprint and no tasks at all (so a fresh story is never lost).
+     *
+     * @param  Builder<Issue>  $query
+     */
+    #[Scope]
+    protected function inSprintView(Builder $query, ?int $sprintId): void
+    {
+        $inSprint = fn (Builder $issues) => $sprintId === null
+            ? $issues->whereNull('sprint_id')
+            : $issues->where('sprint_id', $sprintId);
+
+        $query->where(function (Builder $view) use ($inSprint, $sprintId): void {
+            $view->where(fn (Builder $others) => $inSprint($others->where('role', '!=', IssueRole::Story->value)))
+                ->orWhere(function (Builder $stories) use ($inSprint, $sprintId): void {
+                    $stories->where('role', IssueRole::Story->value)
+                        ->where(function (Builder $story) use ($inSprint, $sprintId): void {
+                            $story->whereHas('children', $inSprint);
+
+                            $sprintId === null
+                                ? $story->orWhere(fn (Builder $own) => $own->whereNull('sprint_id')->whereDoesntHave('children'))
+                                : $story->orWhere('sprint_id', $sprintId);
+                        });
+                });
+        });
+    }
+
+    /**
      * @return BelongsTo<Board, $this>
      */
     public function board(): BelongsTo
@@ -85,6 +121,14 @@ class Issue extends Model
     public function status(): BelongsTo
     {
         return $this->belongsTo(Status::class);
+    }
+
+    /**
+     * @return BelongsTo<Sprint, $this>
+     */
+    public function sprint(): BelongsTo
+    {
+        return $this->belongsTo(Sprint::class);
     }
 
     /**

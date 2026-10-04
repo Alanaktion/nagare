@@ -19,7 +19,8 @@
     import { cn } from '@/lib/utils';
     import { index, show as showBoard } from '@/routes/boards';
     import { show } from '@/routes/issues';
-    import type { Board, Issue, Member } from '@/types';
+    import { sprintLabel } from '@/lib/sprints';
+    import type { Board, Issue, Member, Sprint } from '@/types';
 
     let {
         issue,
@@ -27,15 +28,18 @@
         board,
         members,
         stories,
+        openSprints,
     }: {
         issue: { data: Issue };
         parent: { data: Issue } | null;
         board: { data: Board };
         members: { data: Member[] };
         stories: { data: Issue[] };
+        openSprints: { data: Sprint[] };
     } = $props();
 
     const current = $derived(issue.data);
+    const sprint = $derived(openSprints.data.find((s) => s.id === current.sprint_id));
     const status = $derived(board.data.statuses?.find((s) => s.id === current.status_id));
 
     // Show other people's edits live; the server doesn't echo our own back.
@@ -54,7 +58,7 @@
                     router.visit(showBoard(board.data.id));
                 }
             })
-            .listen('.board.updated', () => router.reload({ only: ['board', 'members', 'stories'] }))
+            .listen('.board.updated', () => router.reload({ only: ['board', 'members', 'stories', 'openSprints'] }))
             .listen('.board.deleted', () => router.visit(index()));
 
         return () => getEcho().leave(channelName);
@@ -111,6 +115,12 @@
                 {/if}
             </dd>
         </div>
+        {#if board.data.has_sprints}
+            <div class="space-y-1">
+                <dt class="text-muted-foreground">Sprint</dt>
+                <dd>{sprint ? sprintLabel(sprint) : 'Backlog'}</dd>
+            </div>
+        {/if}
         {#if parent}
             <div class="space-y-1">
                 <dt class="text-muted-foreground">Story</dt>
@@ -133,7 +143,14 @@
     </section>
 </div>
 
-<IssueDialog bind:open={editOpen} board={board.data} members={members.data} stories={stories.data} issue={current} />
+<IssueDialog
+    bind:open={editOpen}
+    board={board.data}
+    members={members.data}
+    stories={stories.data}
+    sprints={openSprints.data}
+    issue={current}
+/>
 
 <Dialog bind:open={deleteOpen}>
     <DialogContent>

@@ -8,20 +8,32 @@
     import AppHead from '@/components/AppHead.svelte';
     import IssueCard from '@/components/board/IssueCard.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
+    import SprintNav from '@/components/board/SprintNav.svelte';
     import { Button } from '@/components/ui/button';
     import { getEcho } from '@/lib/echo';
     import { sortBetween } from '@/lib/sort';
-    import { edit, index, show } from '@/routes/boards';
-    import type { Board, Issue, IssueRole, Member } from '@/types';
+    import { backlog, edit, index, show } from '@/routes/boards';
+    import { show as showSprint } from '@/routes/boards/sprints';
+    import type { Board, Issue, IssueRole, Member, Sprint } from '@/types';
 
     let {
         board,
         issues,
         members,
+        sprint,
+        sprints,
+        openSprints,
+        previousSprint,
+        nextSprint,
     }: {
         board: { data: Board };
         issues: { data: Issue[] };
         members: { data: Member[] };
+        sprint: { data: Sprint } | null;
+        sprints: { data: Sprint[] };
+        openSprints: { data: Sprint[] };
+        previousSprint: { data: Sprint } | null;
+        nextSprint: { data: Sprint } | null;
     } = $props();
 
     const current = $derived(board.data);
@@ -129,15 +141,47 @@
     // Apply other people's changes straight to the page props, so the board
     // updates live without a request. Only changes made in other tabs or by
     // other users arrive here; the server skips the sender.
+
+    // On sprint boards this page shows one sprint (or the backlog), so issues
+    // that move in or out of it should appear or disappear.
+    const belongsToView = (issue: Issue) =>
+        !current.has_sprints || issue.sprint_id === (sprint?.data.id ?? null);
+
+    // With both stories and sprints, which stories are shown (and each story's
+    // task total) depends on its tasks in other sprints, which the client
+    // doesn't have. Changes that could affect that are refetched instead.
+    const derivesStoryView = $derived(current.has_stories && current.has_sprints);
+
+    const refetchIssues = () => router.reload({ only: ['issues'] });
+
     const upsertIssue = (list: Issue[], issue: Issue, sorts?: Record<number, number> | null) => {
-        const exists = list.some((existing) => existing.id === issue.id);
-        const merged = exists
-            ? list.map((existing) => (existing.id === issue.id ? issue : existing))
+        const existing = list.find((candidate) => candidate.id === issue.id);
+
+        // A story can be shown because of its tasks even when it isn't assigned to this view.
+        if (!belongsToView(issue) && !(existing && issue.role === 'story')) {
+            return list.filter((candidate) => candidate.id !== issue.id);
+        }
+
+        const merged = existing
+            ? list.map((candidate) => (candidate.id === issue.id ? { ...candidate, ...issue } : candidate))
             : [...list, issue];
 
         return sorts
-            ? merged.map((existing) => (existing.id in sorts ? { ...existing, sort: sorts[existing.id] } : existing))
+            ? merged.map((candidate) => (candidate.id in sorts ? { ...candidate, sort: sorts[candidate.id] } : candidate))
             : merged;
+    };
+
+    const handleIssueUpdated = (issue: Issue, sorts: Record<number, number> | null) => {
+        const existing = issues.data.find((candidate) => candidate.id === issue.id);
+        const changesStructure = existing
+            ? existing.sprint_id !== issue.sprint_id || existing.parent_id !== issue.parent_id
+            : belongsToView(issue);
+
+        if (derivesStoryView && changesStructure) {
+            refetchIssues();
+        } else {
+            router.replaceProp('issues.data', (list: Issue[]) => upsertIssue(list, issue, sorts));
+        }
     };
 
     onMount(() => {
@@ -146,16 +190,22 @@
         getEcho()
             .private(channelName)
             .listen('.issue.created', ({ issue }: { issue: Issue }) =>
-                router.replaceProp('issues.data', (list: Issue[]) => upsertIssue(list, issue)),
+                derivesStoryView
+                    ? refetchIssues()
+                    : router.replaceProp('issues.data', (list: Issue[]) => upsertIssue(list, issue)),
             )
             .listen('.issue.updated', ({ issue, sorts }: { issue: Issue; sorts: Record<number, number> | null }) =>
-                router.replaceProp('issues.data', (list: Issue[]) => upsertIssue(list, issue, sorts)),
+                handleIssueUpdated(issue, sorts),
             )
             .listen('.issue.deleted', ({ id }: { id: number }) =>
-                router.replaceProp('issues.data', (list: Issue[]) => list.filter((issue) => issue.id !== id)),
+                derivesStoryView
+                    ? refetchIssues()
+                    : router.replaceProp('issues.data', (list: Issue[]) => list.filter((issue) => issue.id !== id)),
             )
             .listen('.board.updated', () =>
-                router.reload({ only: ['board', 'issues', 'members'] }),
+                router.reload({
+                    only: ['board', 'issues', 'members', 'sprint', 'sprints', 'openSprints', 'previousSprint', 'nextSprint'],
+                }),
             )
             .listen('.board.deleted', () => router.visit(index()));
 
@@ -181,6 +231,9 @@
             breadcrumbs: [
                 { title: 'Boards', href: index() },
                 { title: current.name, href: show(current.id) },
+                ...(current.has_sprints
+                    ? [{ title: sprint?.data.slug ?? 'Backlog', href: sprint ? showSprint([current.id, sprint.data.slug]) : backlog(current.id) }]
+                    : []),
             ],
         });
     });
@@ -210,6 +263,20 @@
     </div>
 {/snippet}
 
+{#snippet storyTaskCount(story: Issue)}
+    {@const total = story.children_count ?? 0}
+    {#if current.has_sprints && total > 0}
+        {@const here = tasks.filter((task) => task.parent_id === story.id).length}
+        <p class="px-1 pt-1 text-xs text-muted-foreground">
+            {#if here === total}
+                {total} {total === 1 ? 'task' : 'tasks'}
+            {:else}
+                {here} of {total} tasks in {sprint ? 'this sprint' : 'the backlog'}
+            {/if}
+        </p>
+    {/if}
+{/snippet}
+
 {#snippet addTaskButton(label: string, parentId?: number)}
     <Button
         variant="ghost"
@@ -223,8 +290,20 @@
 {/snippet}
 
 <div class="flex flex-1 flex-col gap-4 p-4">
-    <div class="flex items-center justify-between gap-4">
-        <h1 class="text-xl font-semibold">{current.name}</h1>
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-4">
+            <h1 class="text-xl font-semibold">{current.name}</h1>
+            {#if current.has_sprints}
+                <SprintNav
+                    board={current}
+                    sprint={sprint?.data ?? null}
+                    previous={previousSprint?.data ?? null}
+                    next={nextSprint?.data ?? null}
+                    sprints={sprints.data}
+                    openSprints={openSprints.data}
+                />
+            {/if}
+        </div>
         <div class="flex items-center gap-2">
             {#if current.has_stories}
                 <Button size="sm" variant="outline" onclick={() => openCreate('story')}>
@@ -259,6 +338,7 @@
                     <div class="flex items-start gap-1 bg-background p-2" data-story={story.id}>
                         <div class="min-w-0 flex-1">
                             <IssueCard issue={story} />
+                            {@render storyTaskCount(story)}
                         </div>
                         {@render addTaskButton(`Add task to ${story.name}`, story.id)}
                     </div>
@@ -328,6 +408,8 @@
         board={current}
         members={members.data}
         {stories}
+        sprints={openSprints.data}
+        sprintId={sprint && !sprint.data.closed_at ? sprint.data.id : undefined}
         role={dialogRole}
         statusId={dialogStatusId}
         parentId={dialogParentId}

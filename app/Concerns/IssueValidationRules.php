@@ -27,6 +27,9 @@ trait IssueValidationRules
             'description' => ['nullable', 'string', 'max:10000'],
             'status_id' => [...($partial ? ['sometimes', 'required'] : ['nullable']), 'integer', Rule::exists('statuses', 'id')->where('board_id', $board->id)->whereNull('deleted_at')],
             'sort' => ['sometimes', 'numeric', 'between:-1000000,1000000'],
+            'sprint_id' => $board->has_sprints
+                ? ['nullable', 'integer', Rule::exists('sprints', 'id')->where('board_id', $board->id)->whereNull('closed_at')]
+                : ['prohibited'],
             'assigned_id' => ['nullable', 'integer', Rule::exists('board_user', 'user_id')->where('board_id', $board->id)],
             'parent_id' => $canHaveParent
                 ? ['nullable', 'integer', Rule::exists('issues', 'id')

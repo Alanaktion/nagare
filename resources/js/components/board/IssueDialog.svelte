@@ -13,13 +13,16 @@
     } from '@/components/ui/dialog';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
-    import type { Board, Issue, IssueRole, Member } from '@/types';
+    import { sprintLabel } from '@/lib/sprints';
+    import type { Board, Issue, IssueRole, Member, Sprint } from '@/types';
 
     let {
         open = $bindable(false),
         board,
         members,
         stories,
+        sprints = [],
+        sprintId,
         issue,
         role = 'task',
         statusId,
@@ -29,6 +32,8 @@
         board: Board;
         members: Member[];
         stories: Issue[];
+        sprints?: Sprint[];
+        sprintId?: number;
         issue?: Issue;
         role?: IssueRole;
         statusId?: number;
@@ -109,6 +114,26 @@
                         <InputError message={errors.assigned_id} />
                     </div>
                 </div>
+
+                {#if board.has_sprints}
+                    <div class="grid gap-2">
+                        <Label for="issue-sprint">Sprint</Label>
+                        <select id="issue-sprint" name="sprint_id" class={selectClass}>
+                            <option value="" selected={!(issue ? issue.sprint_id : sprintId)}>Backlog</option>
+                            {#each sprints as sprint (sprint.id)}
+                                <option value={sprint.id} selected={sprint.id === (issue ? issue.sprint_id : sprintId)}>
+                                    {sprintLabel(sprint)}
+                                </option>
+                            {/each}
+                        </select>
+                        {#if issueRole === 'story'}
+                            <p class="text-xs text-muted-foreground">
+                                A story also appears in any sprint that has one of its tasks.
+                            </p>
+                        {/if}
+                        <InputError message={errors.sprint_id} />
+                    </div>
+                {/if}
 
                 {#if canHaveParent}
                     <div class="grid gap-2">

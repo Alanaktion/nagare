@@ -9,6 +9,7 @@ use App\Http\Requests\Issues\StoreIssueRequest;
 use App\Http\Requests\Issues\UpdateIssueRequest;
 use App\Http\Resources\BoardResource;
 use App\Http\Resources\IssueResource;
+use App\Http\Resources\SprintResource;
 use App\Http\Resources\UserResource;
 use App\Models\Board;
 use App\Models\Issue;
@@ -40,6 +41,11 @@ class IssueController extends Controller
             'parent' => $issue->parent ? new IssueResource($issue->parent) : null,
             'board' => new BoardResource($board),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
+            'openSprints' => SprintResource::collection(
+                $board->sprints()
+                    ->where(fn ($sprints) => $sprints->whereNull('closed_at')->orWhere('id', $issue->sprint_id))
+                    ->get()
+            ),
             'stories' => IssueResource::collection(
                 $board->issues()->where('role', 'story')->orderBy('name')->get()
             ),
