@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 test('user resource exposes only public profile fields', function () {
     $user = User::factory()->make(['id' => 7]);
 
-    $data = (new UserResource($user))->toArray(new Request);
+    $data = (new UserResource($user))->resolve(new Request);
 
     expect($data)->toBe([
         'id' => 7,
