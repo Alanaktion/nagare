@@ -38,6 +38,21 @@ class Label extends Model
     }
 
     /**
+     * The names of the given labels in alphabetical order, as stored on an
+     * issue for searching, or null when there are none.
+     *
+     * @param  array<int, int>  $ids
+     */
+    public static function joinedNames(array $ids): ?string
+    {
+        if ($ids === []) {
+            return null;
+        }
+
+        return static::query()->whereKey($ids)->orderBy('name')->pluck('name')->implode(' ');
+    }
+
+    /**
      * @return BelongsTo<Board, $this>
      */
     public function board(): BelongsTo

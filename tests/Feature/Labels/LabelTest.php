@@ -147,3 +147,51 @@ describe('on issues', function () {
                 ->where('issue.data.labels.0.name', 'Bug'));
     });
 });
+
+describe('searchable label names', function () {
+    beforeEach(function () {
+        $this->bug = Label::factory()->for($this->board)->create(['name' => 'Bug']);
+        $this->design = Label::factory()->for($this->board)->create(['name' => 'Design']);
+        $this->issue = Issue::factory()->inStatus($this->board->statuses[0])->create();
+    });
+
+    test('an issue keeps its label names for searching as its labels change', function () {
+        $this->put(route('issues.update', $this->issue), ['label_ids' => [$this->design->id, $this->bug->id]]);
+        expect($this->issue->fresh()->label_names)->toBe('Bug Design');
+
+        $this->put(route('issues.update', $this->issue), ['label_ids' => [$this->bug->id]]);
+        expect($this->issue->fresh()->label_names)->toBe('Bug');
+
+        $this->put(route('issues.update', $this->issue), ['name' => 'Renamed']);
+        expect($this->issue->fresh()->label_names)->toBe('Bug');
+
+        $this->put(route('issues.update', $this->issue), ['label_ids' => []]);
+        expect($this->issue->fresh()->label_names)->toBeNull();
+    });
+
+    test('new issues start with their label names', function () {
+        $this->post(route('boards.issues.store', $this->board), ['name' => 'Crash', 'role' => 'task', 'label_ids' => [$this->bug->id]]);
+
+        expect(Issue::where('name', 'Crash')->sole()->label_names)->toBe('Bug');
+    });
+
+    test('renaming or deleting a label updates its issues', function () {
+        $this->put(route('issues.update', $this->issue), ['label_ids' => [$this->bug->id, $this->design->id]]);
+
+        $this->put(route('labels.update', $this->bug), ['name' => 'Defect', 'color' => 'red']);
+        expect($this->issue->fresh()->label_names)->toBe('Defect Design');
+
+        $this->delete(route('labels.destroy', $this->design));
+        expect($this->issue->fresh()->label_names)->toBe('Defect');
+
+        $this->put(route('labels.update', $this->bug), ['name' => 'Defect', 'color' => 'blue']);
+        expect($this->issue->fresh()->label_names)->toBe('Defect');
+    });
+
+    test('issues are found by a label added through the app', function () {
+        $this->put(route('issues.update', $this->issue), ['label_ids' => [$this->design->id]]);
+
+        $this->get(route('search', ['q' => 'design']))
+            ->assertInertia(fn (Assert $page) => $page->where('issues.data.0.id', $this->issue->id));
+    });
+});

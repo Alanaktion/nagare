@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Concerns\SearchesText;
+use App\Concerns\SearchesWithScout;
 use App\Enums\IssueRole;
 use Carbon\CarbonImmutable;
 use Database\Factories\IssueFactory;
@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $assigned_id
  * @property string $name
  * @property string|null $description
+ * @property string|null $label_names
  * @property float $sort
  * @property CarbonImmutable|null $closed_at
  * @property CarbonImmutable|null $created_at
@@ -37,7 +38,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Issue extends Model
 {
     /** @use HasFactory<IssueFactory> */
-    use HasFactory, SearchesText, SoftDeletes;
+    use HasFactory, SearchesWithScout, SoftDeletes;
 
     /**
      * Keep the closed timestamp in step with the issue's status, and detach
@@ -109,18 +110,39 @@ class Issue extends Model
     }
 
     /**
-     * Issues whose name, description or a label name contains the search text.
+     * The data Scout indexes. The database engine searches the issue's own
+     * columns, so `label_names` is a column kept in step with the labels.
+     * Other engines need the attributes that results are filtered and sorted by.
      *
-     * @param  Builder<Issue>  $query
+     * @return array<string, mixed>
      */
-    #[Scope]
-    protected function matching(Builder $query, string $search): void
+    public function toSearchableArray(): array
     {
-        $query->where(function (Builder $issues) use ($search): void {
-            self::whereColumnContains($issues, 'name', $search);
-            self::whereColumnContains($issues, 'description', $search, 'or');
-            $issues->orWhereHas('labels', fn (Builder $labels) => self::whereColumnContains($labels, 'name', $search));
-        });
+        $text = [
+            'name' => $this->name,
+            'description' => $this->description,
+            'label_names' => $this->label_names,
+        ];
+
+        if ($this->searchesInDatabase()) {
+            return $text;
+        }
+
+        return [
+            'id' => (string) $this->id,
+            'board_id' => $this->board_id,
+            ...$text,
+            'updated_at' => $this->updated_at?->getTimestamp() ?? 0,
+        ];
+    }
+
+    /**
+     * Store the names of the issue's labels so they can be searched with its text.
+     */
+    public function refreshLabelNames(): void
+    {
+        $this->label_names = Label::joinedNames($this->labels()->pluck('labels.id')->all());
+        $this->save();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Actions\Issues;
 
 use App\Events\IssueUpdated;
 use App\Models\Issue;
+use App\Models\Label;
 use Illuminate\Support\Arr;
 
 class UpdateIssue
@@ -21,7 +22,13 @@ class UpdateIssue
     {
         $labelIds = Arr::pull($data, 'label_ids');
 
-        $issue->update($data);
+        $issue->fill($data);
+
+        if ($labelIds !== null) {
+            $issue->label_names = Label::joinedNames($labelIds);
+        }
+
+        $issue->save();
 
         if ($labelIds !== null) {
             $issue->labels()->sync($labelIds);

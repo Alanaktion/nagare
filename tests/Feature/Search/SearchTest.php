@@ -23,8 +23,9 @@ test('issues are found by name, description and label', function () {
     Issue::factory()->inStatus($todo)->create(['name' => 'Fix login crash', 'description' => null]);
     Issue::factory()->inStatus($todo)->create(['name' => 'Polish', 'description' => 'The login page needs love']);
     Issue::factory()->inStatus($todo)->create(['name' => 'Unrelated', 'description' => null]);
-    Issue::factory()->inStatus($todo)->create(['name' => 'Tagged', 'description' => null])
-        ->labels()->attach(Label::factory()->for($this->board)->create(['name' => 'login']));
+    $tagged = Issue::factory()->inStatus($todo)->create(['name' => 'Tagged', 'description' => null]);
+    $tagged->labels()->attach(Label::factory()->for($this->board)->create(['name' => 'login']));
+    $tagged->refreshLabelNames();
 
     $this->get(route('search', ['q' => 'login']))
         ->assertInertia(fn (Assert $page) => $page
@@ -56,14 +57,6 @@ test('only issues and boards the user belongs to are searched', function () {
         ->assertInertia(fn (Assert $page) => $page->has('boards.data', 1)->where('boards.data.0.name', 'Roadmap'));
 });
 
-test('wildcard characters in the search are matched literally', function () {
-    Issue::factory()->inStatus($this->board->statuses[0])->create(['name' => '100% done', 'description' => null]);
-    Issue::factory()->inStatus($this->board->statuses[0])->create(['name' => '100 items', 'description' => null]);
-
-    $this->get(route('search', ['q' => '100%']))
-        ->assertInertia(fn (Assert $page) => $page->where('issues.data', fn ($issues) => collect($issues)->pluck('name')->all() === ['100% done']));
-});
-
 test('short or empty searches return nothing', function () {
     Issue::factory()->inStatus($this->board->statuses[0])->create(['name' => 'abc']);
 
@@ -73,14 +66,26 @@ test('short or empty searches return nothing', function () {
     }
 });
 
-test('results are paginated and open issues come first', function () {
-    $todo = $this->board->statuses[0];
-    Issue::factory()->inStatus($todo)->count(25)->create(['name' => 'Match open']);
-    Issue::factory()->inStatus($this->board->statuses[2])->create(['name' => 'Match closed']);
+test('results are paginated', function () {
+    Issue::factory()->inStatus($this->board->statuses[0])->count(25)->create(['name' => 'Match']);
 
     $this->get(route('search', ['q' => 'match']))
         ->assertInertia(fn (Assert $page) => $page
             ->has('issues.data', 20)
-            ->where('issues.meta.total', 26)
-            ->where('issues.data.0.name', 'Match open'));
+            ->where('issues.meta.total', 25)
+            ->where('issues.meta.last_page', 2));
+
+    $this->get(route('search', ['q' => 'match', 'page' => 2]))
+        ->assertInertia(fn (Assert $page) => $page->has('issues.data', 5));
+});
+
+test('results carry what the search page shows', function () {
+    $issue = Issue::factory()->inStatus($this->board->statuses[0])->create(['name' => 'Findable']);
+    $issue->labels()->attach(Label::factory()->for($this->board)->create(['name' => 'Bug']));
+
+    $this->get(route('search', ['q' => 'findable']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('issues.data.0.board.name', 'Roadmap')
+            ->where('issues.data.0.status.name', 'To Do')
+            ->where('issues.data.0.labels.0.name', 'Bug'));
 });

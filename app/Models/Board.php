@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Concerns\SearchesText;
+use App\Concerns\SearchesWithScout;
 use App\Enums\BoardRole;
 use App\Enums\SprintCycle;
 use Carbon\CarbonImmutable;
@@ -32,7 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Board extends Model
 {
     /** @use HasFactory<BoardFactory> */
-    use HasFactory, SearchesText, SoftDeletes;
+    use HasFactory, SearchesWithScout, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -133,14 +133,21 @@ class Board extends Model
     }
 
     /**
-     * Boards whose name contains the search text.
+     * The data Scout indexes: the name, plus the id for engines that filter by it.
      *
-     * @param  Builder<Board>  $query
+     * @return array<string, mixed>
      */
-    #[Scope]
-    protected function matching(Builder $query, string $search): void
+    public function toSearchableArray(): array
     {
-        self::whereColumnContains($query, 'name', $search);
+        if ($this->searchesInDatabase()) {
+            return ['name' => $this->name];
+        }
+
+        return [
+            'id' => (string) $this->id,
+            'name' => $this->name,
+            'updated_at' => $this->updated_at?->getTimestamp() ?? 0,
+        ];
     }
 
     /**

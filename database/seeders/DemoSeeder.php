@@ -256,6 +256,7 @@ class DemoSeeder extends Seeder
         ]);
 
         $issue->labels()->attach(array_map(fn (string $labelName) => $this->labels[$board->id][$labelName]->id, $labels));
+        $issue->refreshLabelNames();
 
         return $issue;
     }

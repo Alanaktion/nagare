@@ -5,6 +5,7 @@ namespace App\Actions\Issues;
 use App\Events\IssueCreated;
 use App\Models\Board;
 use App\Models\Issue;
+use App\Models\Label;
 use App\Models\User;
 use Illuminate\Support\Arr;
 
@@ -25,6 +26,7 @@ class CreateIssue
         $labelIds = Arr::pull($data, 'label_ids', []);
 
         $issue = new Issue($data);
+        $issue->label_names = Label::joinedNames($labelIds);
         $issue->board_id = $board->id;
         $issue->author_id = $author->id;
         $issue->status_id = $statusId;
