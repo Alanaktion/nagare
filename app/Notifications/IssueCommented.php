@@ -23,7 +23,7 @@ class IssueCommented extends IssueNotification
 
         $this->commentId = $comment->id;
         $text = trim((string) preg_replace('/\s+/', ' ', $comment->body));
-        $this->excerpt = $text === '' ? null : Str::limit($text, NotifyIssueWatchers::EXCERPT_LENGTH);
+        $this->excerpt = $text === '' ? __('Attached files.') : Str::limit($text, NotifyIssueWatchers::EXCERPT_LENGTH);
     }
 
     /**

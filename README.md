@@ -7,6 +7,7 @@ Nagare (ながれ) is a project management app for teams: Kanban and Scrum board
 - **Boards**: pick any mix of stories and sprints, so a board can be plain Kanban, stories only, sprints only, or full Scrum. Custom statuses, with any of them closing an issue.
 - **Issues**: tasks and stories with assignees, descriptions and labels. Drag cards between columns and story lanes, with touch and keyboard support.
 - **Sprints**: weekly, monthly, quarterly or custom. Fixed-cycle sprints are created for you, and unfinished work carries over when a sprint ends.
+- **Attachments**: files and pictures on issues and comments (10 MB each by default), kept on a private disk and shown to board members only.
 - **Notifications**: watch an issue (you watch the ones you create, are assigned or comment on) and get notified in the app and by email about status changes, comments, descriptions and assignments, as they happen.
 - **Comments and activity**: every issue has a timeline of comments (Markdown, editable) mixed with what changed and who changed it.
 - **Labels, filters and search**: colour-coded labels, a board filter bar, and search across all your boards with filters for board, label, open or closed, and assigned to you.
@@ -47,6 +48,7 @@ The defaults in `.env.example` need no other services: `QUEUE_CONNECTION=sync` r
 
 - **Try it with demo data**: `php artisan db:seed` adds four sample boards. Sign in as `test@example.com` with the password `password`.
 - **Notifications by email**: with the default `sync` queue, each email is sent while the request that caused it is running, so use a fast mail service or switch to the recommended stack's queue. Anyone can turn email off in their notification settings; in-app notifications always arrive.
+- **Attachments**: files are stored in `storage/app/private` by default. Keep PHP's `upload_max_filesize` and `post_max_size` (and your reverse proxy's body size limit) at or above `ATTACHMENTS_MAX_SIZE_KB`. Deleted files are removed for good by `attachments:prune`, which runs from the scheduler, so add the cron job below. To keep files in S3 instead, install `league/flysystem-aws-s3-v3`, configure the `s3` disk and set `ATTACHMENTS_DISK=s3`.
 - **Email**: new accounts must verify their email address. The default `MAIL_MAILER=log` writes the verification link to `storage/logs/laravel.log`. Configure SMTP in `.env` to send real email.
 - **Sprints**: fixed-cycle sprints are created when someone opens a board. To also close ended sprints and carry unfinished issues over each night, add this to cron: `* * * * * cd /path/to/nagare && php artisan schedule:run >> /dev/null 2>&1`
 - **Developing**: run `pnpm run dev` next to `php artisan serve` for hot reloading. (`composer dev` also starts Reverb and a queue worker, so use it with the recommended stack.)

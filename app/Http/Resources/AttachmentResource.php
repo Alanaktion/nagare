@@ -2,14 +2,14 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Comment;
+use App\Models\Attachment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * @mixin Comment
+ * @mixin Attachment
  */
-class CommentResource extends JsonResource
+class AttachmentResource extends JsonResource
 {
     /**
      * @return array<string, mixed>
@@ -19,13 +19,15 @@ class CommentResource extends JsonResource
         return [
             'id' => $this->id,
             'issue_id' => $this->issue_id,
-            'body' => $this->body,
-            'body_html' => $this->body_html,
+            'comment_id' => $this->comment_id,
+            'name' => $this->name,
+            'size' => $this->size,
+            'mime_type' => $this->mime_type,
+            'is_image' => $this->isImage(),
+            'url' => route('attachments.show', $this->resource),
+            'thumbnail_url' => $this->thumbnail_path === null ? null : route('attachments.thumbnail', $this->resource),
             'created_at' => $this->created_at?->toIso8601String(),
-            'edited_at' => $this->edited_at?->toIso8601String(),
             'user' => new UserResource($this->whenLoaded('user')),
-            'attachments' => AttachmentResource::collection($this->whenLoaded('attachments')),
-            'can_update' => (bool) $this->resource->getAttribute('can_update'),
             'can_delete' => (bool) $this->resource->getAttribute('can_delete'),
         ];
     }

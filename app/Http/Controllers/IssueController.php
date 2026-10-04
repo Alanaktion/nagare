@@ -6,13 +6,16 @@ use App\Actions\Issues\BuildIssueTimeline;
 use App\Actions\Issues\CreateIssue;
 use App\Actions\Issues\DeleteIssue;
 use App\Actions\Issues\UpdateIssue;
+use App\Enums\BoardRole;
 use App\Http\Requests\Issues\StoreIssueRequest;
 use App\Http\Requests\Issues\UpdateIssueRequest;
+use App\Http\Resources\AttachmentResource;
 use App\Http\Resources\BoardResource;
 use App\Http\Resources\IssueResource;
 use App\Http\Resources\LabelResource;
 use App\Http\Resources\SprintResource;
 use App\Http\Resources\UserResource;
+use App\Models\Attachment;
 use App\Models\Board;
 use App\Models\Issue;
 use App\Models\User;
@@ -40,6 +43,9 @@ class IssueController extends Controller
         $issue->load(['assignee', 'parent', 'labels']);
         $board = ($issue->board ?? abort(404))->load('statuses');
         $watchers = $issue->watchers()->orderBy('name')->get();
+        $isAdmin = $board->roleFor($user) === BoardRole::Admin;
+        $attachments = $issue->attachments()->whereNull('comment_id')->with('user')->oldest()->oldest('id')->get()
+            ->each(fn (Attachment $attachment) => $attachment->setAttribute('can_delete', $attachment->user_id === $user->id || $isAdmin));
 
         // Looking at an issue reads the notifications about it.
         $user->unreadNotifications()->whereJsonContains('data->issue_id', $issue->id)->update(['read_at' => now()]);
@@ -50,6 +56,7 @@ class IssueController extends Controller
             'board' => new BoardResource($board),
             'members' => UserResource::collection($board->users()->orderBy('name')->get()),
             'labels' => LabelResource::collection($board->labels()->get()),
+            'attachments' => AttachmentResource::collection($attachments),
             'watchers' => UserResource::collection($watchers),
             'isWatching' => $watchers->contains('id', $user->id),
             'timeline' => Inertia::defer(fn () => $buildTimeline->handle($issue, $user)),

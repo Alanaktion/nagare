@@ -34,6 +34,15 @@ export function describeActivity(activity: TimelineActivity): string {
             return data.to
                 ? `added this to sprint ${data.to}`
                 : `moved this from sprint ${data.from} to the backlog`;
+        case 'attached': {
+            const names = data.names ?? [];
+
+            return names.length === 1
+                ? `attached ${names[0]}`
+                : `attached ${names.length} files: ${names.join(', ')}`;
+        }
+        case 'attachment_removed':
+            return `removed the attachment ${data.name}`;
         case 'labels_changed': {
             const added = data.added ?? [];
             const removed = data.removed ?? [];

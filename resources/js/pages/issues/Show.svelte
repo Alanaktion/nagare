@@ -5,6 +5,7 @@
     import { destroy as unwatch, store as watch } from '@/actions/App/Http/Controllers/IssueWatcherController';
     import AppHead from '@/components/AppHead.svelte';
     import IssueDialog from '@/components/board/IssueDialog.svelte';
+    import AttachmentList from '@/components/issue/AttachmentList.svelte';
     import IssueTimeline from '@/components/issue/IssueTimeline.svelte';
     import LabelBadge from '@/components/LabelBadge.svelte';
     import UserAvatar from '@/components/UserAvatar.svelte';
@@ -23,7 +24,7 @@
     import { index, show as showBoard } from '@/routes/boards';
     import { show } from '@/routes/issues';
     import { sprintLabel } from '@/lib/sprints';
-    import type { Board, Issue, Label, Member, Sprint, TimelineEntry } from '@/types';
+    import type { Attachment, Board, Issue, Label, Member, Sprint, TimelineEntry } from '@/types';
 
     let {
         issue,
@@ -31,6 +32,7 @@
         board,
         members,
         labels,
+        attachments,
         watchers,
         isWatching,
         timeline,
@@ -43,6 +45,7 @@
         board: { data: Board };
         members: { data: Member[] };
         labels: { data: Label[] };
+        attachments: { data: Attachment[] };
         watchers: { data: Member[] };
         isWatching: boolean;
         timeline?: TimelineEntry[];
@@ -88,7 +91,7 @@
             })
             .listen('.issue.timeline.changed', ({ id }: { id: number }) => {
                 if (id === current.id) {
-                    router.reload({ only: ['timeline'] });
+                    router.reload({ only: ['timeline', 'attachments'] });
                 }
             })
             .listen('.board.updated', () => router.reload({ only: ['issue', 'board', 'members', 'labels', 'stories', 'openSprints'] }))
@@ -204,6 +207,8 @@
             <p class="text-sm text-muted-foreground">No description.</p>
         {/if}
     </section>
+
+    <AttachmentList issueId={current.id} attachments={attachments.data} />
 
     <IssueTimeline issueId={current.id} timeline={loadedTimeline} limit={timelineLimit} />
 </div>

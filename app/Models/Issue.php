@@ -41,8 +41,10 @@ class Issue extends Model
     use HasFactory, SearchesWithScout, SoftDeletes;
 
     /**
-     * Keep the closed timestamp in step with the issue's status, and detach
-     * tasks from a story when the story is deleted.
+     * Keep the closed timestamp in step with the issue's status. When an issue
+     * is deleted, detach the tasks of a story and hide its attachments, whose
+     * files `attachments:prune` removes later; deleting it for good removes
+     * the files straight away.
      */
     protected static function booted(): void
     {
@@ -56,9 +58,14 @@ class Issue extends Model
         });
 
         static::deleting(function (Issue $issue): void {
-            if (! $issue->isForceDeleting()) {
-                $issue->children()->update(['parent_id' => null]);
+            if ($issue->isForceDeleting()) {
+                $issue->attachments()->withTrashed()->each(fn (Attachment $attachment) => $attachment->deleteFiles());
+
+                return;
             }
+
+            $issue->children()->update(['parent_id' => null]);
+            $issue->attachments()->delete();
         });
     }
 
@@ -186,6 +193,16 @@ class Issue extends Model
     public function watchers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'issue_watcher')->withPivot('created_at');
+    }
+
+    /**
+     * Files attached to the issue, including those posted with its comments.
+     *
+     * @return HasMany<Attachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(Attachment::class);
     }
 
     /**

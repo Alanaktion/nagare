@@ -26,7 +26,7 @@ class BuildIssueTimeline
     {
         $isAdmin = $issue->board?->roleFor($viewer) === BoardRole::Admin;
 
-        $comments = $issue->comments()->with('user')->latest()->latest('id')->limit(self::LIMIT)->get();
+        $comments = $issue->comments()->with(['user', 'attachments.user'])->latest()->latest('id')->limit(self::LIMIT)->get();
         $activities = $issue->activities()->with('user')->latest('created_at')->latest('id')->limit(self::LIMIT)->get();
 
         $entries = [];
@@ -35,6 +35,10 @@ class BuildIssueTimeline
             $isAuthor = $comment->user_id === $viewer->id;
             $comment->setAttribute('can_update', $isAuthor);
             $comment->setAttribute('can_delete', $isAuthor || $isAdmin);
+
+            foreach ($comment->attachments as $attachment) {
+                $attachment->setAttribute('can_delete', $attachment->user_id === $viewer->id || $isAdmin);
+            }
 
             $entries[] = [
                 'sort' => [$comment->created_at?->getTimestamp() ?? 0, 1, $comment->id],

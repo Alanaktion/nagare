@@ -1,3 +1,4 @@
+import type { Attachment } from './attachment';
 import type { Member } from './issue';
 
 export type ActivityType =
@@ -8,7 +9,9 @@ export type ActivityType =
     | 'reopened'
     | 'assigned'
     | 'sprint_changed'
-    | 'labels_changed';
+    | 'labels_changed'
+    | 'attached'
+    | 'attachment_removed';
 
 export type TimelineActivity = {
     kind: 'activity';
@@ -17,6 +20,7 @@ export type TimelineActivity = {
     /** What changed, with the names as they were at the time. */
     data: {
         name?: string;
+        names?: string[];
         from?: string | null;
         to?: string | null;
         added?: string[];
@@ -36,6 +40,7 @@ export type TimelineComment = {
     created_at: string;
     edited_at: string | null;
     user: Member | null;
+    attachments: Attachment[];
     can_update: boolean;
     can_delete: boolean;
 };

@@ -15,4 +15,6 @@ enum IssueActivityType: string
     case Assigned = 'assigned';
     case SprintChanged = 'sprint_changed';
     case LabelsChanged = 'labels_changed';
+    case Attached = 'attached';
+    case AttachmentRemoved = 'attachment_removed';
 }

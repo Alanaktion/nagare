@@ -12,13 +12,17 @@ use App\Models\Issue;
 use App\Models\User;
 use Illuminate\Container\Attributes\CurrentUser;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Gate;
 
 class CommentController extends Controller
 {
     public function store(StoreCommentRequest $request, #[CurrentUser] User $user, Issue $issue, CreateComment $createComment): RedirectResponse
     {
-        $createComment->handle($issue, $user, $request->validated());
+        /** @var list<UploadedFile> $files */
+        $files = $request->file('files', []);
+
+        $createComment->handle($issue, $user, $request->safe()->except('files'), $files);
 
         return back();
     }

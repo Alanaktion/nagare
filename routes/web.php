@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\BacklogController;
 use App\Http\Controllers\BoardController;
 use App\Http\Controllers\BoardMemberController;
@@ -25,6 +26,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('boards.issues', IssueController::class)
         ->shallow()
         ->only(['store', 'show', 'update', 'destroy']);
+    Route::post('issues/{issue}/attachments', [AttachmentController::class, 'store'])
+        ->middleware('throttle:60,1')
+        ->name('issues.attachments.store');
+    Route::get('attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
+    Route::get('attachments/{attachment}/thumbnail', [AttachmentController::class, 'thumbnail'])->name('attachments.thumbnail');
+    Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
     Route::post('issues/{issue}/watchers', [IssueWatcherController::class, 'store'])->name('issues.watchers.store');
     Route::delete('issues/{issue}/watchers', [IssueWatcherController::class, 'destroy'])->name('issues.watchers.destroy');
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

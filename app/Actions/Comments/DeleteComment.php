@@ -11,6 +11,7 @@ class DeleteComment
     {
         $issue = $comment->issue ?? abort(404);
 
+        $comment->attachments()->delete();
         $comment->delete();
 
         IssueTimelineChanged::dispatch($issue->id, $issue->board_id);

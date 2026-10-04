@@ -13,10 +13,12 @@
         DialogTitle,
     } from '@/components/ui/dialog';
     import { Skeleton } from '@/components/ui/skeleton';
+    import AttachmentItem from '@/components/issue/AttachmentItem.svelte';
     import UserAvatar from '@/components/UserAvatar.svelte';
+    import { destroy as destroyAttachment } from '@/actions/App/Http/Controllers/AttachmentController';
     import { describeActivity } from '@/lib/activity';
     import { fullDate, timeAgo } from '@/lib/time';
-    import type { TimelineComment, TimelineEntry } from '@/types';
+    import type { Attachment, TimelineComment, TimelineEntry } from '@/types';
 
     let {
         issueId,
@@ -48,6 +50,14 @@
     const confirmDelete = (comment: TimelineComment) => {
         commentToDelete = comment;
         deleteOpen = true;
+    };
+
+    let attachmentToDelete = $state<Attachment>();
+    let attachmentDeleteOpen = $state(false);
+
+    const confirmDeleteAttachment = (attachment: Attachment) => {
+        attachmentToDelete = attachment;
+        attachmentDeleteOpen = true;
     };
 </script>
 
@@ -153,6 +163,19 @@
                                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                                     <div class="markdown text-sm">{@html entry.body_html}</div>
                                 {/if}
+                                {#if entry.attachments.length > 0}
+                                    <ul class="grid gap-2 pt-1">
+                                        {#each entry.attachments as attachment (attachment.id)}
+                                            <li>
+                                                <AttachmentItem
+                                                    {attachment}
+                                                    showUploader={false}
+                                                    ondelete={confirmDeleteAttachment}
+                                                />
+                                            </li>
+                                        {/each}
+                                    </ul>
+                                {/if}
                             </div>
                         </li>
                     {/if}
@@ -168,10 +191,22 @@
                     name="body"
                     class={textareaClass}
                     placeholder="Write a comment. Markdown is supported."
-                    required
                     onkeydown={submitOnShortcut}
                 ></textarea>
                 <InputError message={errors.body} />
+                <div class="flex flex-wrap items-center gap-2">
+                    <label for="new-comment-files" class="text-xs text-muted-foreground">Attach files</label>
+                    <input
+                        id="new-comment-files"
+                        type="file"
+                        name="files[]"
+                        multiple
+                        class="min-w-0 max-w-full text-xs file:mr-2 file:rounded-md file:border file:bg-background file:px-2 file:py-1 file:text-xs"
+                    />
+                </div>
+                {#each Object.entries(errors).filter(([key]) => key.startsWith('files')) as [key, message] (key)}
+                    <InputError {message} />
+                {/each}
                 <div class="flex items-center justify-between gap-2">
                     <p class="text-xs text-muted-foreground">Markdown is supported. Cmd or Ctrl + Enter to send.</p>
                     <Button type="submit" size="sm" disabled={processing}>Comment</Button>
@@ -180,6 +215,32 @@
         </Form>
     {/if}
 </section>
+
+<Dialog bind:open={attachmentDeleteOpen}>
+    <DialogContent>
+        {#if attachmentToDelete}
+            <Form
+                {...destroyAttachment.form(attachmentToDelete.id)}
+                class="space-y-6"
+                {options}
+                onSuccess={() => (attachmentDeleteOpen = false)}
+            >
+                {#snippet children({ processing })}
+                    <div class="space-y-3">
+                        <DialogTitle>Delete this attachment?</DialogTitle>
+                        <DialogDescription>"{attachmentToDelete?.name}" will be removed from the comment.</DialogDescription>
+                    </div>
+                    <DialogFooter class="gap-2">
+                        <DialogClose>
+                            <Button type="button" variant="secondary">Cancel</Button>
+                        </DialogClose>
+                        <Button type="submit" variant="destructive" disabled={processing}>Delete</Button>
+                    </DialogFooter>
+                {/snippet}
+            </Form>
+        {/if}
+    </DialogContent>
+</Dialog>
 
 <Dialog bind:open={deleteOpen}>
     <DialogContent>
