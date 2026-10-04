@@ -3,6 +3,7 @@
 use App\Enums\BoardRole;
 use App\Enums\SprintCycle;
 use App\Models\Board;
+use App\Models\Issue;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -195,4 +196,83 @@ test('deleted boards are not viewable', function () {
     $board->delete();
 
     $this->actingAs($user)->get(route('boards.show', $board))->assertNotFound();
+});
+
+describe('removing statuses that have issues', function () {
+    beforeEach(function () {
+        $this->user = User::factory()->create();
+        $this->board = Board::factory()->withDefaultStatuses()->withMember($this->user)->create();
+        [$this->todo, $this->progress, $this->done] = $this->board->statuses;
+        $this->issue = Issue::factory()->inStatus($this->progress)->create();
+    });
+
+    function keepOnly(array $statuses, array $extra = []): array
+    {
+        return boardPayload([
+            'statuses' => collect($statuses)->map(fn ($status) => [
+                'id' => $status->id, 'name' => $status->name, 'is_closed' => $status->is_closed,
+            ])->all(),
+            ...$extra,
+        ]);
+    }
+
+    test('a target status is required', function () {
+        $this->actingAs($this->user)
+            ->put(route('boards.update', $this->board), keepOnly([$this->todo, $this->done]))
+            ->assertSessionHasErrors("status_moves.{$this->progress->id}");
+
+        expect($this->progress->fresh()->trashed())->toBeFalse();
+    });
+
+    test('the target must be a status that is kept', function () {
+        $this->actingAs($this->user)
+            ->put(route('boards.update', $this->board), keepOnly([$this->todo, $this->done], [
+                'status_moves' => [$this->progress->id => $this->progress->id],
+            ]))->assertSessionHasErrors("status_moves.{$this->progress->id}");
+    });
+
+    test('issues move to the target status and pick up its closed state', function () {
+        $this->actingAs($this->user)
+            ->put(route('boards.update', $this->board), keepOnly([$this->todo, $this->done], [
+                'status_moves' => [$this->progress->id => $this->done->id],
+            ]))->assertSessionHasNoErrors();
+
+        expect($this->progress->fresh()->trashed())->toBeTrue()
+            ->and($this->issue->fresh()->status_id)->toBe($this->done->id)
+            ->and($this->issue->fresh()->closed_at)->not->toBeNull();
+    });
+
+    test('empty statuses can be removed without a target', function () {
+        $this->actingAs($this->user)
+            ->put(route('boards.update', $this->board), keepOnly([$this->todo, $this->progress]))
+            ->assertSessionHasNoErrors();
+
+        expect($this->done->fresh()->trashed())->toBeTrue();
+    });
+
+    test('toggling a closing status closes or reopens its issues', function () {
+        $this->actingAs($this->user);
+        $payload = fn (bool $closed) => boardPayload(['statuses' => [
+            ['id' => $this->todo->id, 'name' => 'To Do'],
+            ['id' => $this->progress->id, 'name' => 'In Progress', 'is_closed' => $closed],
+            ['id' => $this->done->id, 'name' => 'Done', 'is_closed' => true],
+        ]]);
+
+        $this->put(route('boards.update', $this->board), $payload(true));
+        expect($this->issue->fresh()->closed_at)->not->toBeNull();
+
+        $this->put(route('boards.update', $this->board), $payload(false));
+        expect($this->issue->fresh()->closed_at)->toBeNull();
+    });
+});
+
+test('the edit page tells the form how many issues each status has', function () {
+    $user = User::factory()->create();
+    $board = Board::factory()->withDefaultStatuses()->withMember($user)->create();
+    Issue::factory()->inStatus($board->statuses[1])->count(2)->create();
+
+    $this->actingAs($user)->get(route('boards.edit', $board))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('board.data.statuses.0.issues_count', 0)
+            ->where('board.data.statuses.1.issues_count', 2));
 });

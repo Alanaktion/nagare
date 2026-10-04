@@ -7,6 +7,7 @@ export type Status = {
     name: string;
     sort: number;
     is_closed: boolean;
+    issues_count?: number;
 };
 
 export type Board = {

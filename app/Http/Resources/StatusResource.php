@@ -12,7 +12,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class StatusResource extends JsonResource
 {
     /**
-     * @return array{id: int, name: string, sort: int, is_closed: bool}
+     * @return array<string, mixed>
      */
     public function toArray(Request $request): array
     {
@@ -21,6 +21,7 @@ class StatusResource extends JsonResource
             'name' => $this->name,
             'sort' => $this->sort,
             'is_closed' => $this->is_closed,
+            'issues_count' => $this->whenCounted('issues'),
         ];
     }
 }

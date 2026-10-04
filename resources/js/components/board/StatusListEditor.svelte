@@ -12,15 +12,28 @@
         id?: number;
         name: string;
         is_closed: boolean;
+        issues_count?: number;
+    };
+
+    export type RemovedStatus = {
+        id: number;
+        name: string;
+        is_closed: boolean;
+        issues_count: number;
+        move_to: number | undefined;
     };
 
     let {
         statuses = $bindable(),
+        removed = $bindable(),
         errors = {},
     }: {
         statuses: StatusDraft[];
+        removed: RemovedStatus[];
         errors?: Record<string, string>;
     } = $props();
+
+    const keptExisting = $derived(statuses.filter((status) => status.id !== undefined));
 
     let nextKey = Math.max(0, ...statuses.map((status) => status.key)) + 1;
 
@@ -29,7 +42,27 @@
     };
 
     const remove = (index: number) => {
-        statuses.splice(index, 1);
+        const [status] = statuses.splice(index, 1);
+        if (status.id !== undefined) {
+            removed.push({
+                id: status.id,
+                name: status.name,
+                is_closed: status.is_closed,
+                issues_count: status.issues_count ?? 0,
+                move_to: undefined,
+            });
+        }
+    };
+
+    const restore = (index: number) => {
+        const [status] = removed.splice(index, 1);
+        statuses.push({
+            key: nextKey++,
+            id: status.id,
+            name: status.name,
+            is_closed: status.is_closed,
+            issues_count: status.issues_count,
+        });
     };
 
     const move = (index: number, offset: -1 | 1) => {
@@ -100,4 +133,43 @@
     <Button type="button" variant="outline" size="sm" onclick={add}>
         <Plus class="size-4" /> Add status
     </Button>
+
+    {#if removed.length > 0}
+        <div class="space-y-2 rounded-md border border-dashed p-3">
+            <p class="text-sm font-medium">Removed statuses</p>
+            <ul class="space-y-3">
+                {#each removed as status, index (status.id)}
+                    <li class="space-y-1 text-sm">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-medium">{status.name}</span>
+                            {#if status.issues_count > 0}
+                                <span class="text-muted-foreground">
+                                    — move {status.issues_count}
+                                    {status.issues_count === 1 ? 'issue' : 'issues'} to
+                                </span>
+                                <select
+                                    name="status_moves[{status.id}]"
+                                    bind:value={status.move_to}
+                                    aria-label="Move issues from {status.name} to"
+                                    required
+                                    class="h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                >
+                                    <option value={undefined} disabled>Choose a status</option>
+                                    {#each keptExisting as target (target.id)}
+                                        <option value={target.id}>{target.name || 'Untitled status'}</option>
+                                    {/each}
+                                </select>
+                            {:else}
+                                <span class="text-muted-foreground">— will be deleted</span>
+                            {/if}
+                            <Button type="button" variant="ghost" size="sm" onclick={() => restore(index)}>
+                                Undo
+                            </Button>
+                        </div>
+                        <InputError message={errors[`status_moves.${status.id}`]} />
+                    </li>
+                {/each}
+            </ul>
+        </div>
+    {/if}
 </div>

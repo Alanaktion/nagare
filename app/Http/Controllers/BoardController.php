@@ -8,6 +8,8 @@ use App\Enums\BoardRole;
 use App\Http\Requests\Boards\StoreBoardRequest;
 use App\Http\Requests\Boards\UpdateBoardRequest;
 use App\Http\Resources\BoardResource;
+use App\Http\Resources\IssueResource;
+use App\Http\Resources\UserResource;
 use App\Models\Board;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,6 +61,10 @@ class BoardController extends Controller
 
         return Inertia::render('boards/Show', [
             'board' => new BoardResource($board->load('statuses')),
+            'issues' => IssueResource::collection(
+                $board->issues()->with('assignee')->orderBy('sort')->get()
+            ),
+            'members' => UserResource::collection($board->users()->orderBy('name')->get()),
         ]);
     }
 
@@ -67,7 +73,7 @@ class BoardController extends Controller
         Gate::authorize('update', $board);
 
         return Inertia::render('boards/Edit', [
-            'board' => new BoardResource($board->load('statuses')),
+            'board' => new BoardResource($board->load(['statuses' => fn ($statuses) => $statuses->withCount('issues')])),
         ]);
     }
 

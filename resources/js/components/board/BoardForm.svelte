@@ -1,7 +1,7 @@
 <script lang="ts">
     import { Form } from '@inertiajs/svelte';
     import type { RouteFormDefinition } from '@/wayfinder';
-    import StatusListEditor, { type StatusDraft } from '@/components/board/StatusListEditor.svelte';
+    import StatusListEditor, { type RemovedStatus, type StatusDraft } from '@/components/board/StatusListEditor.svelte';
     import InputError from '@/components/InputError.svelte';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
@@ -33,6 +33,8 @@
     let statuses: StatusDraft[] = $state(
         (board?.statuses ?? defaultStatuses).map((status, key) => ({ ...status, key })),
     );
+
+    let removedStatuses: RemovedStatus[] = $state([]);
 
     const sprintCycles: { value: SprintCycle; label: string }[] = [
         { value: 'weekly', label: 'Weekly' },
@@ -100,7 +102,7 @@
             <p class="text-sm text-muted-foreground">
                 Each status is a column on the board. Issues moved into a status that closes issues are marked closed.
             </p>
-            <StatusListEditor bind:statuses {errors} />
+            <StatusListEditor bind:statuses bind:removed={removedStatuses} {errors} />
         </fieldset>
 
         <Button type="submit" disabled={processing}>{submitLabel}</Button>

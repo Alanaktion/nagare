@@ -18,7 +18,7 @@ class UpdateBoard
     {
         return DB::transaction(function () use ($board, $data): Board {
             $board->update($data);
-            $this->syncStatuses->handle($board, $data['statuses']);
+            $this->syncStatuses->handle($board, $data['statuses'], $data['status_moves'] ?? []);
 
             return $board;
         });
