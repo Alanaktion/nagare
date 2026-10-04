@@ -3,6 +3,7 @@
 namespace App\Actions\Boards;
 
 use App\Models\Board;
+use App\Models\Issue;
 use App\Models\Status;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -66,6 +67,8 @@ class SyncBoardStatuses
      */
     private function moveIssues(Status $from, Status $to): void
     {
+        $ids = $from->issues()->pluck('id')->all();
+
         if ($to->is_closed) {
             $from->issues()->whereNull('closed_at')->update(['closed_at' => now()]);
         } else {
@@ -73,6 +76,8 @@ class SyncBoardStatuses
         }
 
         $from->issues()->update(['status_id' => $to->id]);
+
+        Issue::reindex($ids);
     }
 
     /**
@@ -81,11 +86,14 @@ class SyncBoardStatuses
     private function syncIssueClosedTimestamps(Status $status): void
     {
         $issues = $status->issues();
+        $ids = $issues->pluck('id')->all();
 
         if ($status->is_closed) {
             $issues->whereNull('closed_at')->update(['closed_at' => now()]);
         } else {
             $issues->update(['closed_at' => null]);
         }
+
+        Issue::reindex($ids);
     }
 }

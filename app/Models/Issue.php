@@ -132,8 +132,41 @@ class Issue extends Model
             'id' => (string) $this->id,
             'board_id' => $this->board_id,
             ...$text,
+            'label_ids' => $this->relationLoaded('labels')
+                ? $this->labels->modelKeys()
+                : $this->labels()->pluck('labels.id')->all(),
+            'assigned_id' => $this->assigned_id,
+            'is_closed' => $this->closed_at !== null,
             'updated_at' => $this->updated_at?->getTimestamp() ?? 0,
         ];
+    }
+
+    /**
+     * Load the labels in bulk when importing issues into a search service.
+     *
+     * @param  Builder<Issue>  $query
+     * @return Builder<Issue>
+     */
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query->with('labels');
+    }
+
+    /**
+     * Index issues again after a change that bypassed model events, such as a
+     * bulk update. Does nothing when search runs in the database.
+     *
+     * @param  array<int, int>  $ids
+     */
+    public static function reindex(array $ids): void
+    {
+        if ($ids === [] || static::searchesInDatabase()) {
+            return;
+        }
+
+        $issues = static::query()->whereKey($ids)->with('labels')->get();
+
+        $issues->first()?->queueMakeSearchable($issues);
     }
 
     /**

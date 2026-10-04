@@ -33,6 +33,7 @@ class CreateIssue
         $issue->sort = ($lastSort ?? 0) + 1;
         $issue->save();
         $issue->labels()->sync($labelIds);
+        Issue::reindex($labelIds === [] ? [] : [$issue->id]);
 
         IssueCreated::dispatch($issue);
 

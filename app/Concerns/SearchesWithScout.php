@@ -14,7 +14,7 @@ trait SearchesWithScout
      * text. Search services such as Meilisearch and Typesense also need the
      * attributes that results are filtered and sorted by.
      */
-    protected function searchesInDatabase(): bool
+    public static function searchesInDatabase(): bool
     {
         return in_array(config('scout.driver'), ['database', 'collection', 'null'], true);
     }

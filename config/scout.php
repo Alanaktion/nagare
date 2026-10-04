@@ -146,7 +146,7 @@ return [
             // Issues are filtered by board and boards by id. Run
             // `php artisan scout:sync-index-settings` after changing these.
             Issue::class => [
-                'filterableAttributes' => ['board_id'],
+                'filterableAttributes' => ['board_id', 'assigned_id', 'label_ids', 'is_closed'],
                 'sortableAttributes' => ['updated_at'],
             ],
             Board::class => [
@@ -216,12 +216,16 @@ return [
                         ['name' => 'name', 'type' => 'string'],
                         ['name' => 'description', 'type' => 'string', 'optional' => true],
                         ['name' => 'label_names', 'type' => 'string', 'optional' => true],
+                        ['name' => 'label_ids', 'type' => 'int32[]', 'optional' => true],
+                        ['name' => 'assigned_id', 'type' => 'int32', 'optional' => true],
+                        ['name' => 'is_closed', 'type' => 'bool'],
                         ['name' => 'updated_at', 'type' => 'int64'],
                     ],
                     'default_sorting_field' => 'updated_at',
                 ],
                 'search-parameters' => [
                     'query_by' => 'name,label_names,description',
+                    'query_by_weights' => '4,2,1',
                 ],
             ],
             Board::class => [

@@ -4,6 +4,7 @@ namespace App\Actions\Boards;
 
 use App\Events\BoardUpdated;
 use App\Models\Board;
+use App\Models\Issue;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -25,7 +26,9 @@ class RemoveBoardMember
             }
 
             $board->users()->detach($member);
-            $board->issues()->where('assigned_id', $member->id)->update(['assigned_id' => null]);
+            $assignedIds = $board->issues()->where('assigned_id', $member->id)->pluck('id')->all();
+            $board->issues()->whereKey($assignedIds)->update(['assigned_id' => null]);
+            Issue::reindex($assignedIds);
         });
 
         BoardUpdated::dispatch($board->id);

@@ -19,6 +19,10 @@ services:
             - REVERB_PUBLISH_HOST=reverb
             - REVERB_PUBLISH_PORT=8000
             - REVERB_PUBLISH_SCHEME=http
+            # Search service, used when SCOUT_DRIVER=typesense
+            - TYPESENSE_HOST=typesense
+            - TYPESENSE_PORT=8108
+            - TYPESENSE_PROTOCOL=http
         volumes:
             - .:/var/www/html
     reverb:
@@ -46,6 +50,10 @@ services:
             - REVERB_PUBLISH_HOST=reverb
             - REVERB_PUBLISH_PORT=8000
             - REVERB_PUBLISH_SCHEME=http
+            # Search service, used when SCOUT_DRIVER=typesense
+            - TYPESENSE_HOST=typesense
+            - TYPESENSE_PORT=8108
+            - TYPESENSE_PROTOCOL=http
         command:
             ['php', '/var/www/html/artisan', 'queue:work', '--tries=3', '-vvv']
         stop_signal: SIGTERM
@@ -67,3 +75,27 @@ services:
             start_period: 10s
         volumes:
             - .:/var/www/html
+    # Search engine for Scout. It is only used when SCOUT_DRIVER=typesense;
+    # the default database engine needs no service. The API key comes from
+    # TYPESENSE_API_KEY in .env (the default matches config/scout.php, so set
+    # your own anywhere the service is reachable). The port isn't published.
+    typesense:
+        image: typesense/typesense:30.2
+        restart: always
+        environment:
+            - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz}
+            - TYPESENSE_DATA_DIR=/data
+        volumes:
+            - typesense-data:/data
+        healthcheck:
+            test:
+                - CMD
+                - bash
+                - -c
+                - 'exec 3<>/dev/tcp/127.0.0.1/8108 && printf "GET /health HTTP/1.0\r\n\r\n" >&3 && grep -q "\"ok\":true" <&3'
+            interval: 10s
+            timeout: 3s
+            retries: 5
+            start_period: 10s
+volumes:
+    typesense-data:

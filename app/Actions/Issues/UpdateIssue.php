@@ -32,6 +32,7 @@ class UpdateIssue
 
         if ($labelIds !== null) {
             $issue->labels()->sync($labelIds);
+            Issue::reindex([$issue->id]);
         }
 
         $renumbered = $issue->wasChanged(['sort', 'status_id'])

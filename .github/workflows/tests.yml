@@ -17,6 +17,16 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    # A real Typesense server, so the search tests also run against it.
+    services:
+      typesense:
+        image: typesense/typesense:30.2
+        env:
+          TYPESENSE_API_KEY: testkey
+          TYPESENSE_DATA_DIR: /tmp
+        ports:
+          - 8108:8108
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -55,5 +65,12 @@ jobs:
       - name: Setup Application
         run: composer setup
 
+      - name: Wait for Typesense
+        run: curl --silent --fail --retry 15 --retry-delay 2 --retry-connrefused http://127.0.0.1:8108/health
+
       - name: Run CI Checks
         run: composer ci:check
+        env:
+          TYPESENSE_TEST_HOST: 127.0.0.1
+          TYPESENSE_TEST_PORT: 8108
+          TYPESENSE_TEST_API_KEY: testkey

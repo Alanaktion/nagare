@@ -22,13 +22,16 @@ test('search services also get the attributes results are filtered and sorted by
         'name' => 'Fix',
         'description' => null,
         'label_names' => null,
+        'label_ids' => [],
+        'assigned_id' => null,
+        'is_closed' => false,
     ])->and($issue->toSearchableArray()['updated_at'])->toBeInt()
         ->and($board->toSearchableArray())->toMatchArray(['id' => (string) $board->id, 'name' => $board->name]);
 })->with(['meilisearch', 'typesense']);
 
 test('every engine used with the app has index settings for the attributes it filters on', function () {
-    expect(config('scout.meilisearch.index-settings.'.Issue::class.'.filterableAttributes'))->toBe(['board_id'])
+    expect(config('scout.meilisearch.index-settings.'.Issue::class.'.filterableAttributes'))->toBe(['board_id', 'assigned_id', 'label_ids', 'is_closed'])
         ->and(config('scout.meilisearch.index-settings.'.Board::class.'.filterableAttributes'))->toBe(['id'])
         ->and(collect(config('scout.typesense.model-settings.'.Issue::class.'.collection-schema.fields'))->pluck('name')->all())
-        ->toContain('id', 'board_id', 'name', 'description', 'label_names', 'updated_at');
+        ->toContain('id', 'board_id', 'name', 'description', 'label_names', 'label_ids', 'assigned_id', 'is_closed', 'updated_at');
 });
